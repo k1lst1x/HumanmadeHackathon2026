@@ -63,7 +63,10 @@ def advance(job_id, max_steps=8):
 
 
 def _recipient(job):
-    return job["data"].get("reply_to") or job["thread_id"]
+    thread_id = job["thread_id"]
+    if str(thread_id).startswith("+") or "@" in str(thread_id):
+        return job["data"].get("reply_to") or thread_id
+    return thread_id
 
 
 def _last_customer_text(job):

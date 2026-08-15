@@ -3,11 +3,13 @@ import subprocess
 import sys
 import time
 import uuid
+from urllib.parse import quote
 from pathlib import Path
 
 LINQ_API_KEY = os.environ.get("LINQ_API_KEY", "")
 LINQ_FROM_NUMBER = os.environ.get("LINQ_FROM_NUMBER", "")
 LINQ_BASE = os.environ.get("LINQ_BASE", "https://api.linqapp.com/api/partner/v3")
+LINQ_PIN_FROM = os.environ.get("LINQ_PIN_FROM", "0") == "1"
 SUPERSERVE_API_KEY = os.environ.get("SUPERSERVE_API_KEY", "")
 TERAC_API_KEY = os.environ.get("TERAC_API_KEY", "")
 STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "")
@@ -36,25 +38,98 @@ def _local_path(sandbox_id: str, path: str) -> Path:
 
 class Linq:
     @staticmethod
-    def send_text(to, body):
+    def _headers():
+        return {
+            "Authorization": f"Bearer {LINQ_API_KEY}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+
+    @staticmethod
+    def _is_direct_handle(destination):
+        value = str(destination or "")
+        return value.startswith("+") or "@" in value
+
+    @staticmethod
+    def _message(parts, purpose):
+        return {
+            "parts": parts,
+            "idempotency_key": f"textshop-{purpose}-{uuid.uuid4().hex}",
+        }
+
+    @staticmethod
+    def send_text(destination, body):
         if DRY_RUN or not LINQ_API_KEY:
-            print(f"[linq:text] {to}: {body}")
+            print(f"[linq:text] {destination}: {body}")
+            return {"ok": True}
+        import requests
+
+        message = Linq._message([{"type": "text", "value": body}], "text")
+        if Linq._is_direct_handle(destination):
+            payload = {"to": [destination], "message": message}
+            if LINQ_PIN_FROM and LINQ_FROM_NUMBER:
+                payload["from"] = LINQ_FROM_NUMBER
+                url = f"{LINQ_BASE}/chats"
+            else:
+                url = f"{LINQ_BASE}/messages"
+        else:
+            payload = {"message": message}
+            url = f"{LINQ_BASE}/chats/{quote(str(destination), safe='')}/messages"
+
+        try:
+            r = requests.post(url, headers=Linq._headers(), json=payload, timeout=15)
+            print(f"[linq:send] {r.status_code} to={destination} body={r.text[:300]}")
+            return {
+                "ok": r.ok,
+                "status": r.status_code,
+                "response": _safe_json(r),
+                "message_id": (_safe_json(r) or {}).get("id"),
+                "chat_id": (_safe_json(r) or {}).get("chat_id"),
+            }
+        except Exception as e:
+            print(f"[linq:error] {e}")
+            return {"ok": False, "error": str(e)}
+
+    @staticmethod
+    def send_parts(destination, parts, purpose="parts"):
+        if DRY_RUN or not LINQ_API_KEY:
+            print(f"[linq:{purpose}] {destination}: {parts}")
+            return {"ok": True}
+
+        import requests
+
+        message = Linq._message(parts, purpose)
+        if Linq._is_direct_handle(destination):
+            payload = {"to": [destination], "message": message}
+            url = f"{LINQ_BASE}/messages"
+        else:
+            payload = {"message": message}
+            url = f"{LINQ_BASE}/chats/{quote(str(destination), safe='')}/messages"
+
+        try:
+            r = requests.post(url, headers=Linq._headers(), json=payload, timeout=15)
+            print(f"[linq:{purpose}] {r.status_code} to={destination} body={r.text[:300]}")
+            return {"ok": r.ok, "status": r.status_code, "response": _safe_json(r)}
+        except Exception as e:
+            print(f"[linq:{purpose}:error] {e}")
+            return {"ok": False, "error": str(e)}
+
+    @staticmethod
+    def create_chat(to, body):
+        if DRY_RUN or not LINQ_API_KEY:
+            print(f"[linq:create_chat] {to}: {body}")
             return {"ok": True}
         import requests
 
         payload = {
             "from": LINQ_FROM_NUMBER,
             "to": [to],
-            "message": {"parts": [{"type": "text", "value": body}]},
+            "message": Linq._message([{"type": "text", "value": body}], "chat"),
         }
         try:
             r = requests.post(
                 f"{LINQ_BASE}/chats",
-                headers={
-                    "Authorization": f"Bearer {LINQ_API_KEY}",
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                },
+                headers=Linq._headers(),
                 json=payload,
                 timeout=15,
             )
@@ -96,7 +171,28 @@ class Linq:
 
     @staticmethod
     def typing(to, on=True):
-        return {"ok": True}
+        if DRY_RUN or not LINQ_API_KEY or Linq._is_direct_handle(to):
+            return {"ok": True}
+        import requests
+
+        method = requests.post if on else requests.delete
+        try:
+            r = method(
+                f"{LINQ_BASE}/chats/{quote(str(to), safe='')}/typing",
+                headers=Linq._headers(),
+                timeout=10,
+            )
+            return {"ok": r.ok, "status": r.status_code}
+        except Exception as e:
+            print(f"[linq:typing:error] {e}")
+            return {"ok": False, "error": str(e)}
+
+
+def _safe_json(response):
+    try:
+        return response.json()
+    except Exception:
+        return None
 
 
 class Superserve:

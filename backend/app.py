@@ -1,5 +1,9 @@
+import base64
+import hashlib
 import hmac
+import json
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -17,6 +21,7 @@ app = FastAPI(title="TextShop")
 
 SEED_FLOAT_CENTS = int(os.environ.get("TEXTSHOP_SEED_CENTS", "5000"))
 WEBHOOK_SECRET = os.environ.get("TEXTSHOP_WEBHOOK_SECRET", "")
+LINQ_WEBHOOK_SECRET = os.environ.get("LINQ_WEBHOOK_SECRET", "")
 ARTIFACT_DIR = Path(
     os.environ.get("TEXTSHOP_ARTIFACT_DIR", Path(__file__).resolve().parent / "artifacts")
 )
@@ -37,42 +42,105 @@ def check_secret(provided):
         raise HTTPException(status_code=401, detail="bad webhook secret")
 
 
-@app.post("/linq/webhook")
-async def linq_webhook(request: Request, x_textshop_secret: str = Header(default="")):
-    check_secret(x_textshop_secret)
-    payload = await request.json()
+def verify_linq_signature(secret, body, headers):
+    if not secret:
+        return True
+
+    webhook_id = headers.get("webhook-id")
+    timestamp = headers.get("webhook-timestamp")
+    signature = headers.get("webhook-signature")
+    if not webhook_id or not timestamp or not signature:
+        return False
+
+    try:
+        if abs(time.time() - int(timestamp)) > 300:
+            return False
+        key = base64.b64decode(secret.removeprefix("whsec_"))
+        signed = b".".join([webhook_id.encode(), timestamp.encode(), body])
+        expected = base64.b64encode(hmac.new(key, signed, hashlib.sha256).digest()).decode()
+    except Exception:
+        return False
+
+    for part in signature.split():
+        if not part.startswith("v1,"):
+            continue
+        if hmac.compare_digest(expected, part[3:]):
+            return True
+    return False
+
+
+def extract_linq_message(payload):
     event_type = payload.get("event_type", "")
     data = payload.get("data", {}) or {}
 
-    # Legacy flat payload (simulate / older clients)
     if not event_type and (payload.get("thread_id") or payload.get("from")):
         thread_id = payload.get("thread_id") or payload.get("from")
-        text = payload.get("text") or payload.get("body") or ""
-        event = payload.get("event")
-        if not thread_id:
-            return JSONResponse({"error": "missing thread_id"}, status_code=400)
-        job = orchestrator.handle_message(thread_id, text, event=event)
-        return {"job_id": job["id"] if job else None, "state": job["state"] if job else None}
+        return {
+            "event_type": payload.get("event"),
+            "thread_id": thread_id,
+            "sender": payload.get("from") or thread_id,
+            "text": payload.get("text") or payload.get("body") or "",
+        }
 
-    if event_type not in ("message.received", "chat.created"):
-        return {"ignored": event_type}
-    if data.get("direction") != "inbound":
+    if event_type != "message.received":
+        return {"ignored": event_type or "missing event_type"}
+
+    if data.get("direction") and data.get("direction") != "inbound":
+        return {"ignored": "outbound"}
+    if data.get("is_from_me") is True:
         return {"ignored": "outbound"}
 
-    sender = (data.get("sender_handle") or {}).get("handle")
-    chat_id = (data.get("chat") or {}).get("id")
-    thread_id = chat_id or sender
+    chat = data.get("chat") or {}
+    chat_id = chat.get("id") or data.get("chat_id")
+    sender = (
+        (data.get("sender_handle") or {}).get("handle")
+        or (data.get("from_handle") or {}).get("handle")
+        or data.get("from")
+    )
+
+    parts = data.get("parts")
+    if parts is None:
+        parts = (data.get("message") or {}).get("parts", [])
+
     text = " ".join(
-        p.get("value", "")
-        for p in data.get("parts", [])
-        if p.get("type") == "text"
+        str(part.get("value", ""))
+        for part in parts
+        if part.get("type") == "text" and part.get("value")
     ).strip()
 
-    if not thread_id or not text:
+    return {
+        "event_type": event_type,
+        "thread_id": chat_id or sender,
+        "sender": sender,
+        "text": text,
+    }
+
+
+@app.post("/linq/webhook")
+async def linq_webhook(request: Request, x_textshop_secret: str = Header(default="")):
+    body = await request.body()
+    linq_ok = LINQ_WEBHOOK_SECRET and verify_linq_signature(
+        LINQ_WEBHOOK_SECRET, body, request.headers
+    )
+    legacy_ok = not WEBHOOK_SECRET or (
+        x_textshop_secret and hmac.compare_digest(x_textshop_secret, WEBHOOK_SECRET)
+    )
+    if not linq_ok and not legacy_ok:
+        raise HTTPException(status_code=401, detail="bad webhook signature")
+
+    payload = json.loads(body)
+    message = extract_linq_message(payload)
+    if message.get("ignored"):
+        return {"ignored": message["ignored"]}
+
+    if not message.get("thread_id") or not message.get("text"):
         return {"ignored": "no text"}
 
     job = orchestrator.handle_message(
-        thread_id, text, event=event_type, reply_to=sender
+        message["thread_id"],
+        message["text"],
+        event=message.get("event_type"),
+        reply_to=message.get("sender"),
     )
     return {"job_id": job["id"] if job else None, "state": job["state"] if job else None}
 

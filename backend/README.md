@@ -32,6 +32,39 @@ For Render, set `TEXTSHOP_PUBLIC_BASE_URL` to the deployed backend URL, for exam
 TEXTSHOP_PUBLIC_BASE_URL=https://textshop-api.onrender.com
 ```
 
+## Linq
+
+Create a Linq webhook subscription for:
+
+```
+https://api.textshop.online/linq/webhook?version=2026-02-03
+```
+
+Subscribe at minimum to:
+
+```
+message.received
+```
+
+Store the returned signing secret in backend env:
+
+```
+LINQ_WEBHOOK_SECRET=whsec_...
+```
+
+You can create the subscription from this repo:
+
+```
+cd backend
+python scripts/create_linq_webhook.py
+```
+
+Outbound messages use Linq Partner API v3. For replies to inbound messages,
+TextShop sends to the existing Linq chat via `POST /v3/chats/{chatId}/messages`.
+For legacy/direct phone sends, it uses `POST /v3/messages` and lets Linq choose
+the best sending line. Set `LINQ_PIN_FROM=1` only if you explicitly need to send
+from `LINQ_FROM_NUMBER`.
+
 ## Database
 
 You can connect the database before deployment. Create a Render Postgres
@@ -68,6 +101,9 @@ Person 2, 3, and 4 each replace one class in `integrations.py`. The `DRY_RUN` br
 
 ```
 LINQ_API_KEY=
+LINQ_WEBHOOK_SECRET=
+LINQ_FROM_NUMBER=
+LINQ_PIN_FROM=0
 SUPERSERVE_API_KEY=
 SUPERSERVE_TEMPLATE=superserve/python-3.11
 SUPERSERVE_TIMEOUT_SECONDS=900
