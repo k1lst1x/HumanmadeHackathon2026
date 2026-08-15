@@ -14,6 +14,24 @@ Set `ANTHROPIC_API_KEY` to switch the reasoning layer from keyword fallbacks to 
 
 `TEXTSHOP_DRY_RUN=1` (default) prints every integration call instead of making it. Flip to `0` once keys are wired.
 
+## Superserve
+
+Yes, you need a Superserve API key for the real sandbox path. Get it from the Superserve Console, then run:
+
+```
+export SUPERSERVE_API_KEY=ss_live_...
+export TEXTSHOP_DRY_RUN=0
+export TEXTSHOP_PUBLIC_BASE_URL=http://localhost:8000
+```
+
+`integrations.py` creates a sandbox from `SUPERSERVE_TEMPLATE` (`superserve/python-3.11` by default), uploads `generate.py` and `/work/deck.json`, installs `reportlab`, runs the deck generator, downloads `/work/deck.pdf` into `artifacts/`, then pauses the sandbox.
+
+For Render, set `TEXTSHOP_PUBLIC_BASE_URL` to the deployed backend URL, for example:
+
+```
+TEXTSHOP_PUBLIC_BASE_URL=https://textshop-api.onrender.com
+```
+
 ## File ownership — one person per file, no exceptions
 
 | File | Owner | What it does |
@@ -31,6 +49,10 @@ Person 2, 3, and 4 each replace one class in `integrations.py`. The `DRY_RUN` br
 ```
 LINQ_API_KEY=
 SUPERSERVE_API_KEY=
+SUPERSERVE_TEMPLATE=superserve/python-3.11
+SUPERSERVE_TIMEOUT_SECONDS=900
+SUPERSERVE_AUTO_DELETE_SECONDS=86400
+TEXTSHOP_PUBLIC_BASE_URL=http://localhost:8000
 TERAC_API_KEY=
 STRIPE_API_KEY=
 BAND_API_KEY=

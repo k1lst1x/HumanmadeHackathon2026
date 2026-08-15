@@ -1,8 +1,10 @@
 import hmac
 import os
+from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 import orchestrator
 import store
@@ -11,6 +13,11 @@ app = FastAPI(title="TextShop")
 
 SEED_FLOAT_CENTS = int(os.environ.get("TEXTSHOP_SEED_CENTS", "5000"))
 WEBHOOK_SECRET = os.environ.get("TEXTSHOP_WEBHOOK_SECRET", "")
+ARTIFACT_DIR = Path(
+    os.environ.get("TEXTSHOP_ARTIFACT_DIR", Path(__file__).resolve().parent / "artifacts")
+)
+ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/artifacts", StaticFiles(directory=ARTIFACT_DIR), name="artifacts")
 
 
 @app.on_event("startup")

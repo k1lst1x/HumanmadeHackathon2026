@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import time
 import uuid
 
@@ -9,6 +10,13 @@ STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY", "")
 BAND_API_KEY = os.environ.get("BAND_API_KEY", "")
 
 DRY_RUN = os.environ.get("TEXTSHOP_DRY_RUN", "1") == "1"
+SUPERSERVE_TEMPLATE = os.environ.get("SUPERSERVE_TEMPLATE", "superserve/python-3.11")
+SUPERSERVE_TIMEOUT_SECONDS = int(os.environ.get("SUPERSERVE_TIMEOUT_SECONDS", "900"))
+SUPERSERVE_AUTO_DELETE_SECONDS = int(os.environ.get("SUPERSERVE_AUTO_DELETE_SECONDS", "86400"))
+TEXTSHOP_PUBLIC_BASE_URL = os.environ.get("TEXTSHOP_PUBLIC_BASE_URL", "").rstrip("/")
+
+ROOT = Path(__file__).resolve().parent
+ARTIFACT_DIR = Path(os.environ.get("TEXTSHOP_ARTIFACT_DIR", ROOT / "artifacts"))
 
 
 class Linq:
@@ -56,45 +64,100 @@ class Linq:
 
 
 class Superserve:
+    _sandboxes = {}
+
+    @staticmethod
+    def _sdk_sandbox():
+        if not SUPERSERVE_API_KEY:
+            raise RuntimeError("SUPERSERVE_API_KEY is required when TEXTSHOP_DRY_RUN=0")
+        try:
+            from superserve import Sandbox
+        except ImportError as exc:
+            raise RuntimeError("Install the Superserve SDK first: pip install superserve") from exc
+        return Sandbox
+
+    @staticmethod
+    def _connect(sandbox_id):
+        sandbox = Superserve._sandboxes.get(sandbox_id)
+        if sandbox is not None:
+            return sandbox
+        Sandbox = Superserve._sdk_sandbox()
+        sandbox = Sandbox.connect(sandbox_id)
+        Superserve._sandboxes[sandbox_id] = sandbox
+        return sandbox
+
     @staticmethod
     def create_sandbox(job_id):
         if DRY_RUN:
             return {"sandbox_id": f"sbx_{job_id}"}
-        raise NotImplementedError("wire sandbox create")
+        Sandbox = Superserve._sdk_sandbox()
+        sandbox = Sandbox.create(
+            name=f"textshop-{job_id}",
+            from_template=SUPERSERVE_TEMPLATE,
+            timeout_seconds=SUPERSERVE_TIMEOUT_SECONDS,
+            auto_delete_seconds=SUPERSERVE_AUTO_DELETE_SECONDS,
+            metadata={"app": "textshop", "job_id": str(job_id)},
+        )
+        Superserve._sandboxes[sandbox.id] = sandbox
+        sandbox.commands.run("mkdir -p /work")
+        sandbox.files.write("/work/generate.py", (ROOT / "generate.py").read_text())
+        install = sandbox.commands.run("python -m pip install reportlab")
+        if install.exit_code != 0:
+            raise RuntimeError(f"Superserve dependency install failed: {install.stderr}")
+        return {"sandbox_id": sandbox.id}
 
     @staticmethod
     def run(sandbox_id, command):
         if DRY_RUN:
             print(f"[superserve:run] {sandbox_id}: {command[:80]}")
             return {"exit_code": 0, "stdout": "", "stderr": ""}
-        raise NotImplementedError("wire sandbox exec")
+        result = Superserve._connect(sandbox_id).commands.run(command, timeout_seconds=300)
+        return {
+            "exit_code": result.exit_code,
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+        }
 
     @staticmethod
     def write_file(sandbox_id, path, content):
         if DRY_RUN:
             print(f"[superserve:write] {sandbox_id}:{path} ({len(content)} bytes)")
             return {"ok": True}
-        raise NotImplementedError("wire sandbox file write")
+        Superserve._connect(sandbox_id).files.write(path, content)
+        return {"ok": True}
 
     @staticmethod
     def pause(sandbox_id):
         if DRY_RUN:
             print(f"[superserve:pause] {sandbox_id}")
             return {"ok": True}
-        raise NotImplementedError("wire sandbox pause")
+        Superserve._connect(sandbox_id).pause()
+        return {"ok": True}
 
     @staticmethod
     def resume(sandbox_id):
         if DRY_RUN:
             print(f"[superserve:resume] {sandbox_id}")
             return {"ok": True}
-        raise NotImplementedError("wire sandbox resume")
+        Superserve._connect(sandbox_id).resume()
+        return {"ok": True}
 
     @staticmethod
     def export_artifact(sandbox_id, path):
         if DRY_RUN:
             return {"url": f"https://artifacts.example/{sandbox_id}/deck.pdf"}
-        raise NotImplementedError("wire artifact export to public URL")
+        data = Superserve._connect(sandbox_id).files.read(path)
+        ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+        filename = f"{sandbox_id}-{Path(path).name}"
+        local_path = ARTIFACT_DIR / filename
+        local_path.write_bytes(data)
+
+        if TEXTSHOP_PUBLIC_BASE_URL:
+            return {
+                "url": f"{TEXTSHOP_PUBLIC_BASE_URL}/artifacts/{filename}",
+                "path": str(local_path),
+            }
+        return {"url": str(local_path), "path": str(local_path)}
 
 
 class Terac:
