@@ -1,6 +1,10 @@
 .DS_Store
+.env
+**/.env
 .env.*
 !.env.example
+agent_config.yaml
+**/agent_config.yaml
 
 # Python
 __pycache__/
@@ -27,4 +31,3 @@ yarn-debug.log*
 *.db
 sim.db
 textshop.db
-
