@@ -103,6 +103,13 @@ any future expiry
 any CVC
 ```
 
+## Terac and Band fallback mode
+
+`TERAC_API_KEY` and `BAND_API_KEY` can be present in production env without
+crashing the customer flow. Until the real sponsor APIs are wired, TextShop logs
+`fallback` calls, approves the review/verdict, and keeps the order moving to
+delivery and Stripe Checkout.
+
 ## Database
 
 You can connect the database before deployment. Create a Render Postgres
