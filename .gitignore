@@ -23,3 +23,9 @@ yarn-debug.log*
 # IDE
 .idea/
 .vscode/
+
+# Local TextShop DBs
+*.db
+sim.db
+textshop.db
+

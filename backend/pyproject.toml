@@ -1,15 +1,17 @@
-[build-system]
+﻿[build-system]
 requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "humanmade-hackathon-backend"
 version = "0.1.0"
-description = "FastAPI backend for the Zero Human Company hackathon project."
+description = "TextShop — deck-making agent backend for the Zero Human Company hackathon."
 requires-python = ">=3.12,<3.13"
 dependencies = [
-  "fastapi[standard]>=0.141,<0.142",
-  "pydantic-settings>=2.10,<3",
+  "fastapi>=0.141",
+  "uvicorn>=0.52",
+  "anthropic>=0.122",
+  "reportlab>=5.0",
 ]
 
 [project.optional-dependencies]
@@ -17,10 +19,6 @@ dev = [
   "pytest>=8.4,<9",
   "ruff>=0.12,<0.13",
 ]
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["app*"]
 
 [tool.ruff]
 line-length = 100
