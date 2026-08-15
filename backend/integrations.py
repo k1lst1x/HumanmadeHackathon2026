@@ -141,10 +141,15 @@ class Linq:
 
     @staticmethod
     def send_quote_card(to, job_id, price_cents, scope, deadline_minutes):
-        body = (
-            f"${price_cents / 100:.2f} for: {scope}\n"
-            f"Ready in about {deadline_minutes} min.\n"
-            f"Reply YES to start, or name your price."
+        body = _text_card(
+            f"QUOTE - {_deck_label(scope)}",
+            [
+                ("Price", _money(price_cents)),
+                ("Scope", scope),
+                ("Delivery", f"about {deadline_minutes} min after payment"),
+                ("Verification", "1 human expert"),
+            ],
+            "Reply YES to accept\nReply COUNTER 200 to negotiate",
         )
         result = Linq.send_text(to, body)
         result["card_id"] = uuid.uuid4().hex[:8]
@@ -154,10 +159,30 @@ class Linq:
     def update_card(to, card_id, status, extra=None):
         extra = extra or {}
         labels = {
-            "BUILDING": "On it. Building your deck now.",
-            "READY": f"Done. Your deck: {extra.get('artifact', '')}".strip(),
-            "CONFIRMED": "Payment received. Starting your deck now.",
-            "QUOTED": f"Updated price: {extra.get('price', '')}",
+            "BUILDING": _text_card(
+                "SANDBOX RESUMED",
+                [
+                    ("Status", "building your deck now"),
+                    ("Steps", "outline, PDF render, human review"),
+                ],
+            ),
+            "READY": _text_card(
+                "DECK READY - VERIFIED",
+                [("PDF", extra.get("artifact", ""))],
+                "Reply if anything looks off.",
+            ),
+            "CONFIRMED": _text_card(
+                "PAYMENT RECEIVED",
+                [
+                    ("Status", "sandbox queued"),
+                    ("Next", "building deck"),
+                ],
+            ),
+            "QUOTED": _text_card(
+                "QUOTE UPDATED - REPRICED",
+                [("Price", extra.get("price", ""))],
+                "Reply YES to accept\nReply COUNTER 200 to negotiate",
+            ),
         }
         return Linq.send_text(to, labels.get(status, status))
 
@@ -184,10 +209,17 @@ class Linq:
 
         send = Linq.send_text(
             to,
-            (
-                "Approved. Pay here and I start the deck immediately:\n"
-                f"{checkout['checkout_url']}\n"
-                "Test card: 4242 4242 4242 4242, any future expiry, any CVC."
+            _text_card(
+                "AGENT PAY - READY TO START",
+                [
+                    ("Amount", _money(price_cents)),
+                    ("Checkout", checkout["checkout_url"]),
+                ],
+                (
+                    "After payment:\n"
+                    "sandbox starts, human review, deck delivery\n"
+                    "Test card: 4242 4242 4242 4242"
+                ),
             ),
         )
         checkout["linq_send"] = send
@@ -217,6 +249,35 @@ def _safe_json(response):
         return response.json()
     except Exception:
         return None
+
+
+def _money(cents):
+    value = f"${cents / 100:.2f}"
+    return value[:-3] if value.endswith(".00") else value
+
+
+def _deck_label(scope):
+    normalized = str(scope or "").lower()
+    if "seed" in normalized:
+        return "SEED DECK"
+    if "sales" in normalized:
+        return "SALES DECK"
+    if "investor" in normalized or "fund" in normalized:
+        return "INVESTOR DECK"
+    return "PITCH DECK"
+
+
+def _text_card(title, rows=None, footer=None):
+    lines = [title.upper()]
+    if rows:
+        lines.append("")
+        for label, value in rows:
+            if value:
+                lines.append(f"{label}: {value}")
+    if footer:
+        lines.append("")
+        lines.extend(str(footer).splitlines())
+    return "\n".join(lines)
 
 
 class Superserve:

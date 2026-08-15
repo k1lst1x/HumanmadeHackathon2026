@@ -84,7 +84,7 @@ export default function Pricing() {
           <div className="win win-dark">
             <div className="win-bar">
               <TrafficLights dark />
-              <span className="flex-1 pr-[46px] text-center text-[12px] font-medium text-white/55">
+              <span className="flex-1 pr-[46px] text-center text-[12px] font-medium text-white/70">
                 negotiate.sh
               </span>
             </div>
@@ -93,7 +93,7 @@ export default function Pricing() {
                 <p className="text-[15px] text-white">
                   &lt; think it&apos;s too much? &gt;
                 </p>
-                <p className="mt-3 max-w-lg text-[13.5px] leading-relaxed text-white/55">
+                <p className="mt-3 max-w-lg text-[13.5px] leading-relaxed text-white/70">
                   counter in the thread. it holds a floor at 2× delivery cost and
                   will decline below it — but between the floor and the quote,
                   it deals. students and first-time founders: say so, it factors
@@ -108,7 +108,7 @@ export default function Pricing() {
           </div>
         </div>
 
-        <p className="mt-5 text-center text-[12.5px] text-black/45">
+        <p className="mt-5 text-center text-[12.5px] text-black/70">
           prices shown are what recent jobs settled at. your quote is generated
           for your job and shown before you commit to anything.
         </p>

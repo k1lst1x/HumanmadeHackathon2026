@@ -131,7 +131,7 @@ export const samples = [
     company: "Ledger",
     line: "instant settlement for freight brokers",
     turnaround: "31 min",
-    accent: "#0a7cff",
+    accent: "#0057d8",
     slides: [
       {
         kind: "title" as const,

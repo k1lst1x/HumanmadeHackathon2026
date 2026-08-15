@@ -79,7 +79,7 @@ export default function MenuBar() {
           <span className="flex size-[19px] items-center justify-center rounded-[6px] bubble-blue">
             <MsgIcon className="size-[11px]" />
           </span>
-          <span className="font-mono text-[11px] text-black/45">
+          <span className="font-mono text-[11px] text-black/70">
             {site.phoneCompact}
           </span>
         </span>
@@ -133,7 +133,8 @@ export default function MenuBar() {
           <a
             href={site.phoneHref}
             aria-label={site.smsAccessibleName}
-            className="ml-1 flex items-center gap-1.5 text-[13.5px] font-medium text-imsg tap-target hover:underline"
+            title={`Text ${site.phone}`}
+            className="ml-1 flex items-center gap-1.5 text-[13.5px] font-semibold text-imsg tap-target hover:underline"
           >
             <MsgIcon className="size-[13px]" />
             text us

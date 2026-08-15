@@ -230,7 +230,7 @@ export default function IPod() {
         }`}
       >
         <div className="mb-2.5 flex items-center justify-between px-0.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-black/45">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-black/70">
             iPod
           </span>
           <button
@@ -334,7 +334,7 @@ export default function IPod() {
         </div>
 
         <div className="mt-3 flex items-center gap-2 px-1" data-nodrag>
-          <span className="text-[10px] text-black/40">vol</span>
+          <span className="text-[10px] text-black/65">vol</span>
           <input
             type="range"
             min={0}
@@ -351,7 +351,7 @@ export default function IPod() {
           />
         </div>
 
-        <p className="mt-2 text-center text-[9px] leading-tight text-black/35">
+        <p className="mt-2 text-center text-[9px] leading-tight text-black/65">
           {hasKeys
             ? "spin the wheel · ⏮⏭ change track · menu goes back"
             : "click the iPod to give it the keyboard"}
@@ -374,7 +374,7 @@ function WheelBtn({
     <button
       data-nodrag
       onClick={onClick}
-      className={`absolute flex items-center justify-center rounded-full text-[10px] font-semibold tracking-wide text-black/45 transition-colors hover:text-black active:text-imsg ${className}`}
+      className={`absolute flex items-center justify-center rounded-full text-[10px] font-semibold tracking-wide text-black/70 transition-colors hover:text-black active:text-imsg ${className}`}
     >
       {children}
     </button>

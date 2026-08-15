@@ -41,7 +41,7 @@ export function Win({
           {title && (
             <span
               className={`flex-1 pr-[46px] text-center text-[12px] font-medium ${
-                dark ? "text-white/55" : "text-black/55"
+                dark ? "text-white/70" : "text-black/70"
               }`}
             >
               {title}

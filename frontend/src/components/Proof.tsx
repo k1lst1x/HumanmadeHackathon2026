@@ -7,7 +7,7 @@ const TONE = {
   g: "text-[#32d74b]",
   w: "text-[#ffd60a]",
   r: "text-[#ff6961]",
-  d: "text-white/45",
+  d: "text-white/70",
 } as const;
 
 export default function Proof() {
@@ -66,7 +66,7 @@ export default function Proof() {
           <div className="win win-dark">
             <div className="win-bar">
               <TrafficLights dark />
-              <span className="flex-1 pr-[46px] text-center text-[12px] font-medium text-white/55">
+              <span className="flex-1 pr-[46px] text-center text-[12px] font-medium text-white/70">
                 textshop — job #4471 — live
               </span>
             </div>
@@ -74,13 +74,13 @@ export default function Proof() {
               <ol className="min-w-[520px] space-y-[7px] font-mono text-[12.5px] leading-relaxed">
                 {agentLog.map((l) => (
                   <li key={l.t} className="flex gap-3">
-                    <span className="shrink-0 text-white/30">{l.t}</span>
+                    <span className="shrink-0 text-white/60">{l.t}</span>
                     <span className={TONE[l.c as keyof typeof TONE]}>{l.m}</span>
                   </li>
                 ))}
                 <li className="flex gap-3">
-                  <span className="shrink-0 text-white/30">10:15:46</span>
-                  <span className="text-white/45">
+                  <span className="shrink-0 text-white/60">10:15:46</span>
+                  <span className="text-white/70">
                     idle · waiting for next inbound
                     <span className="ml-1 inline-block h-[13px] w-[7px] translate-y-[2px] animate-blink bg-white/60" />
                   </span>

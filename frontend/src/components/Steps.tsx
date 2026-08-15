@@ -59,8 +59,8 @@ export default function Steps() {
           </div>
 
           <div className="relative overflow-hidden rounded-2xl bg-ink p-7 text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)] sm:p-8">
-            <Kao className="absolute right-5 top-5 text-white/25">{"(•_•)"}</Kao>
-            <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-white/45">
+            <Kao className="absolute right-5 top-5 text-white/70">{"(•_•)"}</Kao>
+            <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-white/65">
               the only guarantee that matters
             </p>
             <h3 className="mt-3 text-[clamp(1.5rem,3.4vw,2rem)] font-medium leading-tight tracking-tight">

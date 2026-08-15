@@ -34,7 +34,7 @@ export default function DeckViewer() {
             }`}
           >
             {x.company}
-            <span className={i === deck ? "text-white/55" : "text-mute-2"}>
+            <span className={i === deck ? "text-white/70" : "text-mute-2"}>
               {" "}
               · {x.tier.split(" · ")[1]}
             </span>
@@ -160,13 +160,13 @@ function SlideView({ slide, accent }: { slide: Slide; accent: string }) {
                       }}
                     />
                   </div>
-                  <span className="mt-[8%] text-center text-[clamp(6px,0.95vw,11px)] text-black/45">
+                  <span className="mt-[8%] text-center text-[clamp(6px,0.95vw,11px)] text-black/70">
                     {slide.labels[i]}
                   </span>
                 </div>
               ))}
             </div>
-            <p className="mt-[2%] font-mono text-[clamp(6px,0.9vw,10px)] uppercase tracking-[0.14em] text-black/35">
+            <p className="mt-[2%] font-mono text-[clamp(6px,0.9vw,10px)] uppercase tracking-[0.14em] text-black/65">
               {slide.caption}
             </p>
           </>

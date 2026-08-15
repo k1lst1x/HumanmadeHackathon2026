@@ -220,7 +220,7 @@ export default function GameBoy() {
         }`}
       >
         <div className="mb-2 flex items-center justify-between px-0.5">
-          <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-black/45">
+          <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-black/70">
             handheld
           </span>
           <button
@@ -235,7 +235,7 @@ export default function GameBoy() {
 
         {/* screen housing */}
         <div className="rounded-[8px] rounded-b-[22px] bg-[#4a4a52] p-3 pb-5">
-          <div className="mb-1.5 flex items-center justify-between text-[7px] font-semibold uppercase tracking-[0.18em] text-white/55">
+          <div className="mb-1.5 flex items-center justify-between text-[7px] font-semibold uppercase tracking-[0.18em] text-white/70">
             <span>dot matrix w/ stereo</span>
             <span className="flex items-center gap-1">
               <span className="size-1.5 rounded-full bg-red" />
@@ -250,7 +250,7 @@ export default function GameBoy() {
             className="block w-full rounded-[2px]"
             style={{ imageRendering: "pixelated", aspectRatio: `${W}/${H}` }}
           />
-          <div className="mt-1.5 flex justify-between font-mono text-[8px] text-white/60">
+          <div className="mt-1.5 flex justify-between font-mono text-[8px] text-white/75">
             <span>score {hud.score}</span>
             <span>best {hud.best}</span>
           </div>
@@ -270,7 +270,7 @@ export default function GameBoy() {
           <Pill label="START" onPress={() => press("start", true)} />
         </div>
 
-        <p className="mt-3 text-center text-[8.5px] leading-tight text-black/40">
+        <p className="mt-3 text-center text-[8.5px] leading-tight text-black/65">
           {mode === "snake" ? "SNAKE" : "BRICKS"} · select swaps game ·{" "}
           {hasKeys ? "arrows + enter" : "click it for keyboard"}
         </p>
@@ -450,7 +450,7 @@ function DPad({ onPress }: { onPress: (k: string, d: boolean) => void }) {
       onPointerDown={(e) => { e.preventDefault(); onPress(k, true); }}
       onPointerUp={() => onPress(k, false)}
       onPointerLeave={() => onPress(k, false)}
-      className={`absolute flex items-center justify-center bg-[#2f2f36] text-[8px] text-white/45 transition-colors active:bg-[#4a4a52] ${cls}`}
+      className={`absolute flex items-center justify-center bg-[#2f2f36] text-[8px] text-white/70 transition-colors active:bg-[#4a4a52] ${cls}`}
     >
       {glyph}
     </button>
@@ -488,7 +488,7 @@ function Pill({ label, onPress }: { label: string; onPress: () => void }) {
       className="flex flex-col items-center gap-1"
     >
       <span className="h-[9px] w-[34px] rotate-[-18deg] rounded-full bg-[#6a6a72] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] transition-colors active:bg-[#4a4a52]" />
-      <span className="text-[7px] font-bold tracking-[0.1em] text-black/45">
+      <span className="text-[7px] font-bold tracking-[0.1em] text-black/70">
         {label}
       </span>
     </button>

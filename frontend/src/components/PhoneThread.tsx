@@ -187,12 +187,12 @@ export default function PhoneThread() {
           {/* thread */}
           <div
             ref={scrollRef}
-            className="hide-scrollbar relative flex h-[430px] flex-col overflow-y-auto px-3.5 py-4"
+            className="phone-thread-scroll hide-scrollbar relative flex h-[430px] flex-col overflow-y-auto px-3.5 py-4"
           >
             {/* mt-auto pins a short thread to the bottom the way Messages does,
                 without the flex-justify-end overflow trap */}
             <div className="mt-auto space-y-2">
-              <p className="pb-1 text-center text-[10px] font-medium uppercase tracking-[0.14em] text-black/35">
+              <p className="pb-1 text-center text-[10px] font-medium uppercase tracking-[0.14em] text-black/65">
                 imessage · today 9:41
               </p>
 
@@ -212,10 +212,10 @@ export default function PhoneThread() {
 
           {/* input bar */}
           <div className="flex items-center gap-2 border-t border-black/10 bg-white px-3 pb-5 pt-2.5">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/[0.06] text-lg leading-none text-black/40">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black/[0.06] text-lg leading-none text-black/65">
               +
             </div>
-            <div className="flex h-9 flex-1 items-center rounded-full border border-black/15 px-3.5 text-[13px] text-black/35">
+            <div className="flex h-9 flex-1 items-center rounded-full border border-black/15 px-3.5 text-[13px] text-black/65">
               iMessage
               <span className="ml-0.5 inline-block h-[15px] w-px animate-blink bg-imsg" />
             </div>
@@ -267,7 +267,7 @@ function Row({
   if (item.kind === "system") {
     return (
       <div className="animate-pop py-1 text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.05] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-black/45">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-black/[0.05] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-black/70">
           <span className="size-1.5 rounded-full bg-money-2" />
           {item.text}
         </span>
@@ -284,7 +284,7 @@ function Row({
           </div>
           <div className="min-w-0">
             <p className="truncate text-[13px] font-semibold">seed_deck_v3.pdf</p>
-            <p className="text-[11px] text-black/45">12 slides · 4.2 mb · verified</p>
+            <p className="text-[11px] text-black/70">12 slides · 4.2 mb · verified</p>
           </div>
         </div>
       </div>
@@ -295,7 +295,7 @@ function Row({
     return (
       <div className="flex animate-pop justify-start">
         <div className="w-[80%] overflow-hidden rounded-[20px] rounded-bl-[7px] bg-bubble p-2.5">
-          <p className="px-1 pb-2 text-[11px] uppercase tracking-wider text-black/45">
+          <p className="px-1 pb-2 text-[11px] uppercase tracking-wider text-black/70">
             agent pay
           </p>
           <div
@@ -342,7 +342,7 @@ function Row({
               ${card.price}
             </span>
             {card.price !== BASE_PRICE && (
-              <span className="pb-1 font-mono text-[11px] text-black/35 line-through">
+              <span className="pb-1 font-mono text-[11px] text-black/65 line-through">
                 ${BASE_PRICE}
               </span>
             )}
@@ -355,7 +355,7 @@ function Row({
               ["verification", "1 human expert"],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-3">
-                <dt className="text-black/40">{k}</dt>
+                <dt className="text-black/65">{k}</dt>
                 <dd className="text-right font-medium text-ink/80">{v}</dd>
               </div>
             ))}
@@ -442,7 +442,7 @@ const Battery = () => (
 );
 
 const Chevron = () => (
-  <svg width="11" height="18" viewBox="0 0 11 18" fill="none" stroke="#0a7cff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="11" height="18" viewBox="0 0 11 18" fill="none" stroke="#0057d8" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 1 2 9l7 8" />
   </svg>
 );

@@ -184,7 +184,7 @@ function Notification() {
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
           <p className="text-[12.5px] font-semibold">Messages</p>
-          <p className="text-[10.5px] text-black/40">now</p>
+          <p className="text-[10.5px] text-black/65">now</p>
         </div>
         <p className="text-[12.5px] leading-snug text-black/70">
           textshop: your deck is ready — 12 slides, verified.
@@ -200,7 +200,7 @@ function Receipt() {
       <span className="absolute right-2.5 top-2.5 -rotate-[14deg] rounded border-2 border-money-2 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.12em] text-money-2">
         paid
       </span>
-      <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-black/45">
+      <p className="font-mono text-[9.5px] uppercase tracking-[0.14em] text-black/70">
         apple pay
       </p>
       <p className="mt-1 text-[30px] font-semibold leading-none tracking-tight text-ink">
@@ -213,7 +213,7 @@ function Receipt() {
           ["settled", "stripe"],
         ].map(([k, v]) => (
           <div key={k} className="flex justify-between gap-2">
-            <dt className="text-black/45">{k}</dt>
+            <dt className="text-black/70">{k}</dt>
             <dd className="font-medium text-black/80">{v}</dd>
           </div>
         ))}
@@ -225,7 +225,7 @@ function Receipt() {
 /* a colourful title slide — the collage needs saturation, not more white cards */
 function TitleSlide() {
   return (
-    <div className="flex aspect-[4/3] flex-col bg-gradient-to-br from-[#0a7cff] via-[#4aa8ff] to-[#7c5cff] p-3.5 text-white">
+    <div className="flex aspect-[4/3] flex-col bg-gradient-to-br from-[#0057d8] via-[#0046a8] to-[#2f147f] p-3.5 text-white">
       <p className="font-mono text-[8.5px] uppercase tracking-[0.18em] text-white/70">
         confidential
       </p>
@@ -235,7 +235,7 @@ function TitleSlide() {
       <p className="text-[10px] leading-snug text-white/80">
         instant settlement for freight brokers
       </p>
-      <p className="mt-2.5 text-[8.5px] text-white/60">seed round · 2026</p>
+      <p className="mt-2.5 text-[8.5px] text-white/75">seed round · 2026</p>
     </div>
   );
 }
