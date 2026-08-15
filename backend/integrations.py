@@ -163,11 +163,31 @@ class Linq:
 
     @staticmethod
     def request_payment(to, card_id, price_cents, job_id):
+        checkout = Stripe.create_checkout_session(
+            job_id=job_id,
+            price_cents=price_cents,
+            description="Pitch deck delivered by TextShop",
+        )
         if DRY_RUN or not LINQ_API_KEY:
-            print(f"[linq:agent_pay] {to} {job_id} ${price_cents / 100:.2f}")
-            return {"ok": True, "checkout_id": uuid.uuid4().hex[:8]}
-        Linq.send_text(to, f"Total due: ${price_cents / 100:.2f}")
-        return {"ok": True, "checkout_id": uuid.uuid4().hex[:8]}
+            print(
+                f"[linq:agent_pay] {to} {job_id} ${price_cents / 100:.2f} "
+                f"{checkout.get('checkout_url', '')}"
+            )
+            return checkout
+
+        if not checkout.get("ok"):
+            Linq.send_text(to, "The deck is ready, but checkout failed. We are looking into it.")
+            return checkout
+
+        Linq.send_text(
+            to,
+            (
+                "Your deck is ready. Pay after delivery here:\n"
+                f"{checkout['checkout_url']}\n"
+                "Test card: 4242 4242 4242 4242, any future expiry, any CVC."
+            ),
+        )
+        return checkout
 
     @staticmethod
     def typing(to, on=True):
@@ -368,8 +388,100 @@ class Band:
 
 class Stripe:
     @staticmethod
+    def _client():
+        if not STRIPE_API_KEY or STRIPE_API_KEY.startswith("pk_"):
+            raise RuntimeError("STRIPE_API_KEY must be a Stripe secret key, e.g. sk_test_...")
+        import stripe
+
+        stripe.api_key = STRIPE_API_KEY
+        return stripe
+
+    @staticmethod
+    def create_checkout_session(job_id, price_cents, description="Pitch deck"):
+        if DRY_RUN:
+            checkout_id = f"cs_test_{uuid.uuid4().hex[:24]}"
+            return {
+                "ok": True,
+                "checkout_id": checkout_id,
+                "checkout_url": f"{TEXTSHOP_PUBLIC_BASE_URL}/stripe/success?session_id={checkout_id}",
+                "payment_status": "paid",
+            }
+        if not STRIPE_API_KEY or STRIPE_API_KEY.startswith("pk_"):
+            return {
+                "ok": False,
+                "error": "STRIPE_API_KEY must be a Stripe secret key, e.g. sk_test_...",
+            }
+
+        stripe = Stripe._client()
+        metadata = {"app": "textshop", "job_id": str(job_id)}
+        try:
+            session = stripe.checkout.Session.create(
+                mode="payment",
+                client_reference_id=str(job_id),
+                success_url=(
+                    f"{TEXTSHOP_PUBLIC_BASE_URL}/stripe/success"
+                    "?session_id={CHECKOUT_SESSION_ID}"
+                ),
+                cancel_url=f"{TEXTSHOP_PUBLIC_BASE_URL}/stripe/cancel?job_id={job_id}",
+                metadata=metadata,
+                payment_intent_data={"metadata": metadata},
+                line_items=[
+                    {
+                        "quantity": 1,
+                        "price_data": {
+                            "currency": os.environ.get("STRIPE_CURRENCY", "usd"),
+                            "unit_amount": int(price_cents),
+                            "product_data": {
+                                "name": "TextShop pitch deck",
+                                "description": str(description)[:500],
+                            },
+                        },
+                    }
+                ],
+            )
+            return {
+                "ok": True,
+                "checkout_id": session.id,
+                "checkout_url": session.url,
+                "payment_status": session.payment_status,
+            }
+        except Exception as exc:
+            print(f"[stripe:checkout:error] {exc}")
+            return {"ok": False, "error": str(exc)}
+
+    @staticmethod
     def confirm_payment(checkout_id):
-        # Stub until Agent Pay / Stripe webhook is wired — do not charge.
-        if DRY_RUN or not STRIPE_API_KEY or STRIPE_API_KEY.startswith("pk_"):
+        if not checkout_id:
+            return {"paid": False, "error": "missing checkout_id", "at": time.time()}
+        if DRY_RUN:
             return {"paid": True, "amount_cents": None, "at": time.time()}
-        raise NotImplementedError("wire Stripe payment intent lookup")
+        if not STRIPE_API_KEY or STRIPE_API_KEY.startswith("pk_"):
+            return {
+                "paid": False,
+                "error": "STRIPE_API_KEY must be a Stripe secret key, e.g. sk_test_...",
+                "at": time.time(),
+            }
+
+        stripe = Stripe._client()
+        try:
+            session = stripe.checkout.Session.retrieve(checkout_id)
+        except Exception as exc:
+            print(f"[stripe:confirm:error] {exc}")
+            return {"paid": False, "error": str(exc), "at": time.time()}
+        paid = session.payment_status == "paid"
+        return {
+            "paid": paid,
+            "checkout_id": session.id,
+            "payment_intent": session.payment_intent,
+            "amount_cents": session.amount_total,
+            "currency": session.currency,
+            "at": time.time(),
+        }
+
+    @staticmethod
+    def parse_webhook(body, signature, webhook_secret):
+        if not webhook_secret:
+            return None
+        import stripe
+
+        return stripe.Webhook.construct_event(body, signature, webhook_secret)

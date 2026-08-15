@@ -142,6 +142,15 @@ def post_ledger(kind, amount_cents, job_id=None, note=None):
         )
 
 
+def has_ledger(job_id, kind):
+    with conn() as c:
+        row = c.execute(
+            "SELECT COUNT(*) AS n FROM ledger WHERE job_id = ? AND kind = ?",
+            (job_id, kind),
+        ).fetchone()
+    return row["n"] > 0
+
+
 def balance_cents():
     with conn() as c:
         row = c.execute("SELECT COALESCE(SUM(amount_cents), 0) AS b FROM ledger").fetchone()

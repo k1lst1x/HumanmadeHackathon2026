@@ -65,6 +65,44 @@ For legacy/direct phone sends, it uses `POST /v3/messages` and lets Linq choose
 the best sending line. Set `LINQ_PIN_FROM=1` only if you explicitly need to send
 from `LINQ_FROM_NUMBER`.
 
+## Stripe / Agent Pay
+
+Payment collection is a real Stripe Checkout Session. In hackathon/test mode,
+use Stripe test keys so the production Render deployment can be tested with
+Stripe test cards without moving real money:
+
+```
+STRIPE_API_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+TEXTSHOP_PUBLIC_BASE_URL=https://api.textshop.online
+TEXTSHOP_DRY_RUN=0
+```
+
+Create a Stripe webhook endpoint that points to:
+
+```
+https://api.textshop.online/stripe/webhook
+```
+
+Subscribe to:
+
+```
+checkout.session.completed
+```
+
+When a deck is delivered, TextShop sends the customer a Stripe Checkout link in
+the Linq thread. After Stripe confirms `checkout.session.completed`, the job
+advances from `COLLECT` to `LEARN`, revenue is posted to P&L once, and the
+customer gets the confirmed payment message.
+
+Use Stripe's standard test card in the hosted Checkout page:
+
+```
+4242 4242 4242 4242
+any future expiry
+any CVC
+```
+
 ## Database
 
 You can connect the database before deployment. Create a Render Postgres
@@ -112,6 +150,8 @@ TEXTSHOP_PUBLIC_BASE_URL=http://localhost:8000
 DATABASE_URL=
 TERAC_API_KEY=
 STRIPE_API_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_CURRENCY=usd
 BAND_API_KEY=
 TEXTSHOP_DRY_RUN=0
 TEXTSHOP_SEED_CENTS=5000

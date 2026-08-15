@@ -13,6 +13,7 @@ dependencies = [
   "anthropic>=0.122",
   "reportlab>=5.0",
   "superserve>=0.1",
+  "stripe>=13.0",
 ]
 
 [project.optional-dependencies]

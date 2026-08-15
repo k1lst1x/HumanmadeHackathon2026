@@ -5,3 +5,4 @@ reportlab
 python-dotenv
 requests
 superserve
+stripe

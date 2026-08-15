@@ -269,7 +269,10 @@ def on_collect(job):
     if not result.get("paid"):
         return None
     price = job["data"]["price_cents"]
-    store.post_ledger("revenue", price, job_id=job["id"], note="deck delivered")
+    job["data"]["payment"] = result
+    store.save_job(job)
+    if not store.has_ledger(job["id"], "revenue"):
+        store.post_ledger("revenue", price, job_id=job["id"], note="stripe checkout")
     Linq.update_card(_recipient(job), job["data"]["card_id"], "CONFIRMED")
     return "LEARN"
 

@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import html
 import json
 import os
 import time
@@ -16,12 +17,14 @@ from fastapi.staticfiles import StaticFiles
 
 import orchestrator
 import store
+from integrations import Stripe
 
 app = FastAPI(title="TextShop")
 
 SEED_FLOAT_CENTS = int(os.environ.get("TEXTSHOP_SEED_CENTS", "5000"))
 WEBHOOK_SECRET = os.environ.get("TEXTSHOP_WEBHOOK_SECRET", "")
 LINQ_WEBHOOK_SECRET = os.environ.get("LINQ_WEBHOOK_SECRET", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 ARTIFACT_DIR = Path(
     os.environ.get("TEXTSHOP_ARTIFACT_DIR", Path(__file__).resolve().parent / "artifacts")
 )
@@ -146,15 +149,62 @@ async def linq_webhook(request: Request, x_textshop_secret: str = Header(default
 
 
 @app.post("/stripe/webhook")
-async def stripe_webhook(request: Request, x_textshop_secret: str = Header(default="")):
-    check_secret(x_textshop_secret)
-    payload = await request.json()
-    metadata = (payload.get("data", {}).get("object", {}) or {}).get("metadata", {}) or {}
-    job_id = metadata.get("job_id")
+async def stripe_webhook(
+    request: Request,
+    stripe_signature: str = Header(default=""),
+    x_textshop_secret: str = Header(default=""),
+):
+    body = await request.body()
+    if STRIPE_WEBHOOK_SECRET:
+        try:
+            payload = Stripe.parse_webhook(body, stripe_signature, STRIPE_WEBHOOK_SECRET)
+        except Exception:
+            raise HTTPException(status_code=400, detail="bad stripe signature")
+    else:
+        check_secret(x_textshop_secret)
+        payload = json.loads(body)
+
+    event_type = payload.get("type")
+    if event_type != "checkout.session.completed":
+        return {"ignored": event_type}
+
+    session = (payload.get("data", {}).get("object", {}) or {})
+    metadata = session.get("metadata", {}) or {}
+    job_id = metadata.get("job_id") or session.get("client_reference_id")
     if not job_id:
         return JSONResponse({"error": "missing job_id"}, status_code=400)
     job = orchestrator.advance(job_id)
     return {"job_id": job_id, "state": job["state"] if job else None}
+
+
+@app.get("/stripe/success", response_class=HTMLResponse)
+def stripe_success(session_id: str = ""):
+    safe_session_id = html.escape(session_id)
+    return f"""
+<!doctype html>
+<meta charset="utf-8">
+<title>TextShop payment received</title>
+<body style="font:16px/1.5 system-ui,sans-serif;padding:40px;max-width:680px;margin:auto">
+  <h1>Payment received</h1>
+  <p>Thanks. TextShop is confirming this in your message thread now.</p>
+  <p style="color:#666">Stripe session: {safe_session_id}</p>
+</body>
+"""
+
+
+@app.get("/stripe/cancel", response_class=HTMLResponse)
+def stripe_cancel(job_id: str = ""):
+    safe_job_id = html.escape(job_id)
+    return f"""
+<!doctype html>
+<meta charset="utf-8">
+<title>TextShop payment canceled</title>
+<body style="font:16px/1.5 system-ui,sans-serif;padding:40px;max-width:680px;margin:auto">
+  <h1>Payment canceled</h1>
+  <p>No charge was made. You can go back to the message thread and use the checkout link again.</p>
+  <p style="color:#666">Job: {safe_job_id}</p>
+</body>
+"""
 
 
 @app.get("/pnl")
