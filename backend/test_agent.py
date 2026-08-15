@@ -1,2 +1,2 @@
-def test_simple_check():
+def test_ok():
     assert 1 + 1 == 2
