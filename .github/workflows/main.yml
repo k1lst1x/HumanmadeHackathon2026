@@ -55,4 +55,6 @@ jobs:
           if [ -n "$REPLAY_API_KEY" ]; then
             export REPLAY_UPLOAD=1
           fi
-          npx playwright test --project replay-chromium --reporter=@replayio/playwright/reporter,line
+          # Use local installs from package.json — bare `npx playwright` pulls a
+          # temp package without @replayio/playwright and breaks the reporter.
+          ./node_modules/.bin/playwright test --project replay-chromium --reporter=@replayio/playwright/reporter,line
