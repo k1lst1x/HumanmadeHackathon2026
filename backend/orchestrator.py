@@ -204,7 +204,20 @@ def on_build(job):
     Superserve.write_file(
         sandbox["sandbox_id"], "/work/deck.json", json.dumps(deck)
     )
-    Superserve.run(sandbox["sandbox_id"], build_command(job["data"]["scope"]))
+    build = Superserve.run(sandbox["sandbox_id"], build_command(job["data"]["scope"]))
+    if build.get("exit_code") != 0:
+        error = build.get("stderr") or build.get("stdout") or "unknown generator failure"
+        store.log_decision(
+            "build_failed",
+            "deck PDF generation failed",
+            job_id=job["id"],
+            detail=error[:500],
+        )
+        Linq.send_text(
+            _recipient(job),
+            "I hit a deck generation error after payment. I am retrying instead of sending a broken file.",
+        )
+        return None
     artifact = Superserve.export_artifact(sandbox["sandbox_id"], "/work/deck.pdf")
     Superserve.pause(sandbox["sandbox_id"])
 

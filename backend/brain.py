@@ -120,38 +120,68 @@ Return ONLY a JSON object, no preamble, no markdown:
 {
   "title": "deck title",
   "subtitle": "one line positioning",
+  "metrics": [
+    {"value": "short number or proof point", "label": "what it means"}
+  ],
   "slides": [
     {
+      "type": "problem | solution | market | product | traction | business model | competition | team | ask",
+      "layout": "split | grid | bullets | chart",
       "heading": "slide heading",
-      "bullets": ["3 to 5 short bullets, under 12 words each"],
-      "note": "one line of speaker guidance"
+      "callout": "one memorable phrase or number",
+      "bullets": ["3 to 5 concrete bullets, under 14 words each"],
+      "note": "one line of speaker guidance for the founder"
     }
   ]
 }
-Follow the standard investor arc: problem, solution, product, market, business model, traction,
-competition, team, ask. Adapt to the requested slide count. Be specific and concrete.
+Make the deck feel designed: each slide needs a clear takeaway, not a generic label.
+Follow the investor arc: problem, solution, product, market, business model, traction,
+competition, team, ask. Adapt to the requested slide count.
+Use "chart" layout for market, traction, economics, or funnel slides. Use "grid" for product,
+competition, and team. Use "split" for problem, solution, ask, and thesis slides.
+Be specific to the customer's company and audience.
 Never invent fake metrics, customer names, or funding figures. Where a number belongs but is
 unknown, write a bracketed placeholder like [ARR] so the founder fills it in."""
 
 
 def generate_deck(scope):
     slide_count = scope.get("slide_count", 10)
+    company = scope.get("company") or "Pitch Deck"
+    summary = scope.get("summary", "")
+    audience = scope.get("audience", "")
+    arc = [
+        ("problem", "The pain is urgent and expensive", "Who struggles today and why current options fail"),
+        ("solution", "A focused answer customers can understand", "What the company does in one sentence"),
+        ("product", "The product turns the workflow into leverage", "What users actually do and get back"),
+        ("market", "The wedge starts narrow, then expands", "Initial buyer, expansion path, and market logic"),
+        ("business model", "Revenue follows the customer outcome", "Pricing, buyer, margin, and repeatability"),
+        ("traction", "Early proof points make the story believable", "Use placeholders only where numbers are unknown"),
+        ("competition", "The difference is speed, focus, or economics", "Why this wins against alternatives"),
+        ("team", "The team has unfair context", "Why this group can execute"),
+        ("ask", "The round buys one measurable milestone", "Amount, use of funds, and next proof point"),
+    ][:slide_count]
     fallback = {
-        "title": scope.get("company") or "Pitch Deck",
-        "subtitle": scope.get("summary", ""),
+        "title": company,
+        "subtitle": summary or f"A sharper story for {audience or 'the next audience'}",
+        "metrics": [
+            {"value": str(slide_count), "label": "slide investor narrative"},
+            {"value": "1", "label": "clear wedge"},
+            {"value": "next", "label": "milestone-ready ask"},
+        ],
         "slides": [
-            {"heading": h, "bullets": ["[fill in]"], "note": ""}
-            for h in [
-                "Problem",
-                "Solution",
-                "Product",
-                "Market",
-                "Business Model",
-                "Traction",
-                "Competition",
-                "Team",
-                "The Ask",
-            ][:slide_count]
+            {
+                "type": kind,
+                "layout": ["split", "grid", "bullets", "chart"][i % 4],
+                "heading": heading,
+                "callout": kind.title(),
+                "bullets": [
+                    summary or "Customer brief goes here",
+                    detail,
+                    "Replace bracketed placeholders with founder data",
+                ],
+                "note": f"Make this slide specific to {company}.",
+            }
+            for i, (kind, heading, detail) in enumerate(arc)
         ],
     }
     user = (
