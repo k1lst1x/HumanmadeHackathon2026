@@ -32,6 +32,26 @@ For Render, set `TEXTSHOP_PUBLIC_BASE_URL` to the deployed backend URL, for exam
 TEXTSHOP_PUBLIC_BASE_URL=https://textshop-api.onrender.com
 ```
 
+## Database
+
+You can connect the database before deployment. Create a Render Postgres
+database in the same region as the backend service, then run:
+
+```
+backend/db/postgres_schema.sql
+```
+
+For local development, put the external Render Postgres connection string in
+`backend/.env`:
+
+```
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/DATABASE
+```
+
+Use Render's internal database URL from Render services in the same workspace
+and region. Use the external database URL from your laptop, n8n, or any service
+outside Render. Keep `DATABASE_URL` out of Git.
+
 ## File ownership — one person per file, no exceptions
 
 | File | Owner | What it does |
@@ -53,6 +73,7 @@ SUPERSERVE_TEMPLATE=superserve/python-3.11
 SUPERSERVE_TIMEOUT_SECONDS=900
 SUPERSERVE_AUTO_DELETE_SECONDS=86400
 TEXTSHOP_PUBLIC_BASE_URL=http://localhost:8000
+DATABASE_URL=
 TERAC_API_KEY=
 STRIPE_API_KEY=
 BAND_API_KEY=
