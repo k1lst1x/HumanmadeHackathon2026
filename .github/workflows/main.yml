@@ -50,8 +50,9 @@ jobs:
       - name: Run Playwright with Replay
         env:
           RECORD_REPLAY_API_KEY: ${{ secrets.RECORD_REPLAY_API_KEY }}
+          REPLAY_API_KEY: ${{ secrets.RECORD_REPLAY_API_KEY }}
         run: |
-          if [ -n "$RECORD_REPLAY_API_KEY" ]; then
+          if [ -n "$REPLAY_API_KEY" ]; then
             export REPLAY_UPLOAD=1
           fi
           npx playwright test --project replay-chromium --reporter=@replayio/playwright/reporter,line
