@@ -156,7 +156,7 @@ class Linq:
         labels = {
             "BUILDING": "On it. Building your deck now.",
             "READY": f"Done. Your deck: {extra.get('artifact', '')}".strip(),
-            "CONFIRMED": "Payment received. Thanks for the business.",
+            "CONFIRMED": "Payment received. Starting your deck now.",
             "QUOTED": f"Updated price: {extra.get('price', '')}",
         }
         return Linq.send_text(to, labels.get(status, status))
@@ -177,7 +177,7 @@ class Linq:
 
         if not checkout.get("ok"):
             send = Linq.send_text(
-                to, "The deck is ready, but checkout failed. We are looking into it."
+                to, "Checkout failed before I could start the deck. We are looking into it."
             )
             checkout["linq_send"] = send
             return checkout
@@ -185,7 +185,7 @@ class Linq:
         send = Linq.send_text(
             to,
             (
-                "Your deck is ready. Pay after delivery here:\n"
+                "Approved. Pay here and I start the deck immediately:\n"
                 f"{checkout['checkout_url']}\n"
                 "Test card: 4242 4242 4242 4242, any future expiry, any CVC."
             ),

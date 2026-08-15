@@ -11,10 +11,10 @@ STATES = [
     "QUALIFY",
     "QUOTE",
     "NEGOTIATE",
+    "COLLECT",
     "BUILD",
     "VERIFY",
     "DELIVER",
-    "COLLECT",
     "LEARN",
     "DONE",
 ]
@@ -139,9 +139,8 @@ def on_negotiate(job):
     intent = verdict.get("intent", "unclear")
 
     if intent == "accept":
-        store.record_outcome(job["id"], price, accepted=True)
-        Linq.update_card(_recipient(job), job["data"]["card_id"], "BUILDING")
-        return "BUILD"
+        _request_checkout(job)
+        return "COLLECT"
 
     if intent == "change_scope":
         job["data"]["scope"] = brain.extract_scope(
@@ -188,6 +187,7 @@ def on_negotiate(job):
 
 
 def on_build(job):
+    Linq.update_card(_recipient(job), job["data"]["card_id"], "BUILDING")
     started = time.time()
     sandbox = Superserve.create_sandbox(job["id"])
     job["data"]["sandbox_id"] = sandbox["sandbox_id"]
@@ -256,8 +256,7 @@ def on_deliver(job):
         "READY",
         {"artifact": job["data"]["artifact_url"]},
     )
-    _request_checkout(job)
-    return "COLLECT"
+    return "LEARN"
 
 
 def on_collect(job):
@@ -276,7 +275,7 @@ def on_collect(job):
     if not store.has_ledger(job["id"], "revenue"):
         store.post_ledger("revenue", price, job_id=job["id"], note="stripe checkout")
     Linq.update_card(_recipient(job), job["data"]["card_id"], "CONFIRMED")
-    return "LEARN"
+    return "BUILD"
 
 
 def _request_checkout(job):

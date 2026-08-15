@@ -186,7 +186,7 @@ def stripe_success(session_id: str = ""):
 <title>TextShop payment received</title>
 <body style="font:16px/1.5 system-ui,sans-serif;padding:40px;max-width:680px;margin:auto">
   <h1>Payment received</h1>
-  <p>Thanks. TextShop is confirming this in your message thread now.</p>
+  <p>Thanks. TextShop is starting your deck now and will update your message thread.</p>
   <p style="color:#666">Stripe session: {safe_session_id}</p>
 </body>
 """
@@ -201,7 +201,7 @@ def stripe_cancel(job_id: str = ""):
 <title>TextShop payment canceled</title>
 <body style="font:16px/1.5 system-ui,sans-serif;padding:40px;max-width:680px;margin:auto">
   <h1>Payment canceled</h1>
-  <p>No charge was made. You can go back to the message thread and use the checkout link again.</p>
+  <p>No charge was made. TextShop will wait to start until payment is complete.</p>
   <p style="color:#666">Job: {safe_job_id}</p>
 </body>
 """
