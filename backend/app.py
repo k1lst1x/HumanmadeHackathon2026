@@ -2,6 +2,10 @@ import hmac
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -17,7 +21,7 @@ ARTIFACT_DIR = Path(
     os.environ.get("TEXTSHOP_ARTIFACT_DIR", Path(__file__).resolve().parent / "artifacts")
 )
 ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
-app.mount("/artifacts", StaticFiles(directory=ARTIFACT_DIR), name="artifacts")
+app.mount("/artifacts", StaticFiles(directory=str(ARTIFACT_DIR)), name="artifacts")
 
 
 @app.on_event("startup")
@@ -37,12 +41,39 @@ def check_secret(provided):
 async def linq_webhook(request: Request, x_textshop_secret: str = Header(default="")):
     check_secret(x_textshop_secret)
     payload = await request.json()
-    thread_id = payload.get("thread_id") or payload.get("from")
-    text = payload.get("text") or payload.get("body") or ""
-    event = payload.get("event")
-    if not thread_id:
-        return JSONResponse({"error": "missing thread_id"}, status_code=400)
-    job = orchestrator.handle_message(thread_id, text, event=event)
+    event_type = payload.get("event_type", "")
+    data = payload.get("data", {}) or {}
+
+    # Legacy flat payload (simulate / older clients)
+    if not event_type and (payload.get("thread_id") or payload.get("from")):
+        thread_id = payload.get("thread_id") or payload.get("from")
+        text = payload.get("text") or payload.get("body") or ""
+        event = payload.get("event")
+        if not thread_id:
+            return JSONResponse({"error": "missing thread_id"}, status_code=400)
+        job = orchestrator.handle_message(thread_id, text, event=event)
+        return {"job_id": job["id"] if job else None, "state": job["state"] if job else None}
+
+    if event_type not in ("message.received", "chat.created"):
+        return {"ignored": event_type}
+    if data.get("direction") != "inbound":
+        return {"ignored": "outbound"}
+
+    sender = (data.get("sender_handle") or {}).get("handle")
+    chat_id = (data.get("chat") or {}).get("id")
+    thread_id = chat_id or sender
+    text = " ".join(
+        p.get("value", "")
+        for p in data.get("parts", [])
+        if p.get("type") == "text"
+    ).strip()
+
+    if not thread_id or not text:
+        return {"ignored": "no text"}
+
+    job = orchestrator.handle_message(
+        thread_id, text, event=event_type, reply_to=sender
+    )
     return {"job_id": job["id"] if job else None, "state": job["state"] if job else None}
 
 

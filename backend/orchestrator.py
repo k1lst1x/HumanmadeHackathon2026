@@ -22,7 +22,7 @@ STATES = [
 TERMINAL = {"DONE", "ABANDONED"}
 
 
-def handle_message(thread_id, text, event=None):
+def handle_message(thread_id, text, event=None, reply_to=None):
     job = store.active_job_for_thread(thread_id)
     if job is None:
         job_id = store.create_job(
@@ -32,6 +32,10 @@ def handle_message(thread_id, text, event=None):
         )
         job = store.get_job(job_id)
         store.log_decision("job_opened", f"opened job for {thread_id}", job_id=job_id)
+
+    # Must set before advance() — Linq sends need an E.164 number, not chat UUID
+    if reply_to:
+        job["data"]["reply_to"] = reply_to
 
     job["data"].setdefault("messages", []).append(
         {"role": "customer", "text": text, "at": time.time(), "event": event}
@@ -58,6 +62,10 @@ def advance(job_id, max_steps=8):
     return store.get_job(job_id)
 
 
+def _recipient(job):
+    return job["data"].get("reply_to") or job["thread_id"]
+
+
 def _last_customer_text(job):
     for m in reversed(job["data"].get("messages", [])):
         if m["role"] == "customer":
@@ -66,7 +74,7 @@ def _last_customer_text(job):
 
 
 def on_inbound(job):
-    Linq.typing(job["thread_id"], True)
+    Linq.typing(_recipient(job), True)
     return "QUALIFY"
 
 
@@ -78,7 +86,7 @@ def on_qualify(job):
 
     if not scope.get("clear"):
         Linq.send_text(
-            job["thread_id"],
+            _recipient(job),
             scope.get("question")
             or "Happy to help. What's the company, who's the audience, and how many slides?",
         )
@@ -110,7 +118,7 @@ def on_quote(job):
 
     job["data"]["price_cents"] = price
     card = Linq.send_quote_card(
-        job["thread_id"], job["id"], price, scope["summary"], scope.get("eta_minutes", 20)
+        _recipient(job), job["id"], price, scope["summary"], scope.get("eta_minutes", 20)
     )
     job["data"]["card_id"] = card.get("card_id")
     store.save_job(job)
@@ -129,7 +137,7 @@ def on_negotiate(job):
 
     if intent == "accept":
         store.record_outcome(job["id"], price, accepted=True)
-        Linq.update_card(job["thread_id"], job["data"]["card_id"], "BUILDING")
+        Linq.update_card(_recipient(job), job["data"]["card_id"], "BUILDING")
         return "BUILD"
 
     if intent == "change_scope":
@@ -149,7 +157,7 @@ def on_negotiate(job):
             job["data"]["price_cents"] = counter
             store.save_job(job)
             Linq.update_card(
-                job["thread_id"],
+                _recipient(job),
                 job["data"]["card_id"],
                 "QUOTED",
                 {"price": f"${counter / 100:.2f}"},
@@ -161,7 +169,7 @@ def on_negotiate(job):
             )
             return None
         Linq.send_text(
-            job["thread_id"],
+            _recipient(job),
             "That's below what this costs me to deliver. No hard feelings.",
         )
         store.log_decision(
@@ -172,7 +180,7 @@ def on_negotiate(job):
         return "DONE"
 
     if verdict.get("reply"):
-        Linq.send_text(job["thread_id"], verdict["reply"])
+        Linq.send_text(_recipient(job), verdict["reply"])
     return None
 
 
@@ -240,13 +248,13 @@ def on_verify(job):
 
 def on_deliver(job):
     Linq.update_card(
-        job["thread_id"],
+        _recipient(job),
         job["data"]["card_id"],
         "READY",
         {"artifact": job["data"]["artifact_url"]},
     )
     checkout = Linq.request_payment(
-        job["thread_id"], job["data"]["card_id"], job["data"]["price_cents"], job["id"]
+        _recipient(job), job["data"]["card_id"], job["data"]["price_cents"], job["id"]
     )
     job["data"]["checkout_id"] = checkout.get("checkout_id")
     store.save_job(job)
@@ -259,7 +267,7 @@ def on_collect(job):
         return None
     price = job["data"]["price_cents"]
     store.post_ledger("revenue", price, job_id=job["id"], note="deck delivered")
-    Linq.update_card(job["thread_id"], job["data"]["card_id"], "CONFIRMED")
+    Linq.update_card(_recipient(job), job["data"]["card_id"], "CONFIRMED")
     return "LEARN"
 
 

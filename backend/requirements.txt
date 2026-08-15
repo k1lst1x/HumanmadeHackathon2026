@@ -2,4 +2,6 @@ fastapi
 uvicorn
 anthropic
 reportlab
+python-dotenv
+requests
 superserve
