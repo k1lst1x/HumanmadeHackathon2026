@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
+    "test:e2e": "playwright test",
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
@@ -16,6 +17,8 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@replayio/playwright": "5.0.3",
     "@vitejs/plugin-react": "6.0.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

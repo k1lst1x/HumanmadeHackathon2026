@@ -26,3 +26,27 @@ jobs:
       - name: Run Pytest
         run: |
           pytest backend/ || exit 0
+
+  replay-playwright:
+    name: Replay Playwright
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - uses: replayio/action-playwright@v0.7.0
+        with:
+          api-key: ${{ secrets.RECORD_REPLAY_API_KEY }}
+          command: npx playwright test
+          project: replay-chromium
+          working-directory: frontend
