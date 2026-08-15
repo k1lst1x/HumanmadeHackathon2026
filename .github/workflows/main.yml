@@ -44,9 +44,14 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - uses: replayio/action-playwright@v0.7.0
-        with:
-          api-key: ${{ secrets.RECORD_REPLAY_API_KEY }}
-          command: npx playwright test
-          project: replay-chromium
-          working-directory: frontend
+      - name: Install Replay Chromium
+        run: npx replayio install
+
+      - name: Run Playwright with Replay
+        env:
+          RECORD_REPLAY_API_KEY: ${{ secrets.RECORD_REPLAY_API_KEY }}
+        run: |
+          if [ -n "$RECORD_REPLAY_API_KEY" ]; then
+            export REPLAY_UPLOAD=1
+          fi
+          npx playwright test --project replay-chromium --reporter=@replayio/playwright/reporter,line
