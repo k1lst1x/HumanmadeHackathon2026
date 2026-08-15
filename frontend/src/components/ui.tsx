@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { site } from "@/lib/site";
 
 /* ── window chrome ─────────────────────────────────────────────────────── */
 
@@ -66,6 +67,7 @@ type BtnProps = {
   variant?: "blue" | "plain" | "dark";
   size?: "sm" | "md" | "lg";
   className?: string;
+  ariaLabel?: string;
 };
 
 const SIZES = {
@@ -80,17 +82,23 @@ export function Aqua({
   variant = "plain",
   size = "md",
   className = "",
+  ariaLabel,
 }: BtnProps) {
   const v =
     variant === "blue" ? "aqua-blue" : variant === "dark" ? "aqua-dark" : "";
   return (
     <a
       href={href}
+      aria-label={ariaLabel}
       className={`aqua ${v} ${SIZES[size]} inline-flex items-center justify-center gap-2 font-medium tap-target ${className}`}
     >
       {children}
     </a>
   );
+}
+
+export function SmsAqua(props: Omit<BtnProps, "href" | "ariaLabel">) {
+  return <Aqua {...props} href={site.phoneHref} ariaLabel={site.smsAccessibleName} />;
 }
 
 /* ── desktop furniture ─────────────────────────────────────────────────── */

@@ -1,7 +1,7 @@
 import { site, stats, trustBar } from "@/lib/site";
 import PhoneThread from "./PhoneThread";
 import Draggable from "./desktop/Draggable";
-import { Aqua, Kao, MsgIcon, Sticky, Win } from "./ui";
+import { Aqua, Kao, MsgIcon, SmsAqua, Sticky, Win } from "./ui";
 
 export default function Hero() {
   return (
@@ -100,15 +100,14 @@ export default function Hero() {
         </p>
 
         <div className="mt-8 flex animate-rise flex-col items-center justify-center gap-2.5 [animation-delay:160ms] sm:flex-row">
-          <Aqua
-            href={site.phoneHref}
+          <SmsAqua
             variant="blue"
             size="lg"
             className="w-full sm:w-auto"
           >
             <MsgIcon />
             text {site.phone}
-          </Aqua>
+          </SmsAqua>
           <Aqua href="#proof" size="lg" className="w-full sm:w-auto">
             see a real deck
           </Aqua>

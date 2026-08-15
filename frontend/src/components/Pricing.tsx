@@ -1,5 +1,5 @@
-import { site, tiers } from "@/lib/site";
-import { Aqua, Check, MsgIcon, Sticky, TrafficLights } from "./ui";
+import { tiers } from "@/lib/site";
+import { Check, MsgIcon, SmsAqua, Sticky, TrafficLights } from "./ui";
 
 export default function Pricing() {
   return (
@@ -49,13 +49,12 @@ export default function Pricing() {
                     <p className="mt-2 text-[12.5px] text-mute">
                       typical · quoted per job
                     </p>
-                    <Aqua
-                      href={site.phoneHref}
+                    <SmsAqua
                       variant={t.popular ? "blue" : "plain"}
                       className="mt-5"
                     >
                       text to order
-                    </Aqua>
+                    </SmsAqua>
                   </div>
 
                   <p className="text-left text-[13px] text-mute">includes</p>
@@ -101,10 +100,10 @@ export default function Pricing() {
                   that in.
                 </p>
               </div>
-              <Aqua href={site.phoneHref} variant="plain" className="font-sans">
+              <SmsAqua variant="plain" className="font-sans">
                 <MsgIcon />
                 make it an offer
-              </Aqua>
+              </SmsAqua>
             </div>
           </div>
         </div>

@@ -11,7 +11,7 @@ import FloatingApps from "@/components/desktop/FloatingApps";
 export default function Home() {
   return (
     <DesktopProvider>
-      <main>
+      <main id="main-content">
         <MenuBar />
         <Hero />
         <Steps />

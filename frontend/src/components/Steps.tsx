@@ -1,5 +1,5 @@
-import { included, promise, site, steps } from "@/lib/site";
-import { Aqua, Check, Kao, MsgIcon, Quote } from "./ui";
+import { included, promise, steps } from "@/lib/site";
+import { Check, Kao, MsgIcon, Quote, SmsAqua } from "./ui";
 
 export default function Steps() {
   return (
@@ -69,14 +69,13 @@ export default function Steps() {
             <p className="mt-4 text-[15px] leading-relaxed text-white/65">
               {promise.body}
             </p>
-            <Aqua
-              href={site.phoneHref}
+            <SmsAqua
               variant="blue"
               className="mt-7 w-full sm:w-auto"
             >
               <MsgIcon />
               get a free quote
-            </Aqua>
+            </SmsAqua>
           </div>
         </div>
 

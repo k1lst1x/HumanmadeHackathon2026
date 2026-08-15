@@ -1,6 +1,6 @@
-import { agentLog, endorsements, site } from "@/lib/site";
+import { agentLog, endorsements } from "@/lib/site";
 import DeckViewer from "./DeckViewer";
-import { Aqua, Kao, MsgIcon, TrafficLights } from "./ui";
+import { Kao, MsgIcon, SmsAqua, TrafficLights } from "./ui";
 
 const TONE = {
   b: "text-[#5ac8fa]",
@@ -32,10 +32,10 @@ export default function Proof() {
         </div>
 
         <div className="mt-10 flex flex-col items-center gap-3">
-          <Aqua href={site.phoneHref} variant="blue" size="lg">
+          <SmsAqua variant="blue" size="lg">
             <MsgIcon />
             get one like this
-          </Aqua>
+          </SmsAqua>
           <p className="text-[12.5px] text-mute">
             quote back in ninety seconds · you pay after you&apos;ve seen it
           </p>

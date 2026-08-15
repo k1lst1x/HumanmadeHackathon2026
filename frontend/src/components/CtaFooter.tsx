@@ -1,5 +1,5 @@
 import { site, stats } from "@/lib/site";
-import { Aqua, Kao, MsgIcon } from "./ui";
+import { Aqua, Kao, MsgIcon, SmsAqua } from "./ui";
 
 export default function CtaFooter() {
   return (
@@ -23,15 +23,14 @@ export default function CtaFooter() {
           </h2>
 
           <div className="mt-9 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
-            <Aqua
-              href={site.phoneHref}
+            <SmsAqua
               variant="blue"
               size="lg"
               className="w-full sm:w-auto"
             >
               <MsgIcon />
               text {site.phone}
-            </Aqua>
+            </SmsAqua>
             <Aqua href="#pricing" size="lg" className="w-full sm:w-auto">
               see prices first
             </Aqua>

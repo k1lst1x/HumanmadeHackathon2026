@@ -8,7 +8,7 @@ import { useDesktop } from "./desktop/DesktopContext";
 const LINKS = [
   ["how it works", "#how"],
   ["pricing", "#pricing"],
-  ["examples", "#proof"],
+  ["see a real deck", "#proof"],
   ["faq", "#faq"],
 ] as const;
 
@@ -132,6 +132,7 @@ export default function MenuBar() {
 
           <a
             href={site.phoneHref}
+            aria-label={site.smsAccessibleName}
             className="ml-1 flex items-center gap-1.5 text-[13.5px] font-medium text-imsg tap-target hover:underline"
           >
             <MsgIcon className="size-[13px]" />

@@ -19,6 +19,7 @@ export const site = {
   phone: "+14156035648",
   phoneHref: "sms:+14156035648",
   phoneCompact: "+14156035648",
+  smsAccessibleName: "text TextShop",
 } as const;
 
 /**

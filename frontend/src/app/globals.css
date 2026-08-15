@@ -62,6 +62,27 @@ body {
 
 ::selection { background: var(--color-imsg); color: #fff; }
 
+.skip-link {
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  z-index: 1000;
+  transform: translateY(-140%);
+  border-radius: 999px;
+  background: #000;
+  color: #fff;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 0.14s ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+  outline: 3px solid var(--color-imsg);
+  outline-offset: 2px;
+}
+
 /* ── the desktop ───────────────────────────────────────────────────────── */
 
 .dots {

@@ -34,6 +34,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${sans.variable} ${mono.variable} antialiased`}>
+        <a href="#main-content" className="skip-link">
+          skip to content
+        </a>
         {children}
       </body>
     </html>
