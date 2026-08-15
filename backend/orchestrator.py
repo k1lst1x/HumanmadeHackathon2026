@@ -256,17 +256,19 @@ def on_deliver(job):
         "READY",
         {"artifact": job["data"]["artifact_url"]},
     )
-    checkout = Linq.request_payment(
-        _recipient(job), job["data"]["card_id"], job["data"]["price_cents"], job["id"]
-    )
-    job["data"]["checkout_id"] = checkout.get("checkout_id")
-    store.save_job(job)
+    _request_checkout(job)
     return "COLLECT"
 
 
 def on_collect(job):
-    result = Stripe.confirm_payment(job["data"]["checkout_id"])
+    if not job["data"].get("checkout_id"):
+        _request_checkout(job)
+        return None
+
+    result = Stripe.confirm_payment(job["data"].get("checkout_id"))
     if not result.get("paid"):
+        job["data"]["last_payment_check"] = result
+        store.save_job(job)
         return None
     price = job["data"]["price_cents"]
     job["data"]["payment"] = result
@@ -275,6 +277,32 @@ def on_collect(job):
         store.post_ledger("revenue", price, job_id=job["id"], note="stripe checkout")
     Linq.update_card(_recipient(job), job["data"]["card_id"], "CONFIRMED")
     return "LEARN"
+
+
+def _request_checkout(job):
+    checkout = Linq.request_payment(
+        _recipient(job), job["data"]["card_id"], job["data"]["price_cents"], job["id"]
+    )
+    job["data"]["checkout"] = checkout
+    job["data"]["checkout_id"] = checkout.get("checkout_id")
+    store.save_job(job)
+
+    if checkout.get("ok") and checkout.get("checkout_url"):
+        store.log_decision(
+            "checkout_created",
+            f"created Stripe Checkout for ${job['data']['price_cents'] / 100:.2f}",
+            job_id=job["id"],
+            detail=checkout.get("checkout_id"),
+        )
+        return checkout
+
+    store.log_decision(
+        "checkout_failed",
+        "Stripe Checkout was not created",
+        job_id=job["id"],
+        detail=str(checkout.get("error") or checkout),
+    )
+    return checkout
 
 
 def on_learn(job):

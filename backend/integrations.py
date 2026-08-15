@@ -176,10 +176,13 @@ class Linq:
             return checkout
 
         if not checkout.get("ok"):
-            Linq.send_text(to, "The deck is ready, but checkout failed. We are looking into it.")
+            send = Linq.send_text(
+                to, "The deck is ready, but checkout failed. We are looking into it."
+            )
+            checkout["linq_send"] = send
             return checkout
 
-        Linq.send_text(
+        send = Linq.send_text(
             to,
             (
                 "Your deck is ready. Pay after delivery here:\n"
@@ -187,6 +190,7 @@ class Linq:
                 "Test card: 4242 4242 4242 4242, any future expiry, any CVC."
             ),
         )
+        checkout["linq_send"] = send
         return checkout
 
     @staticmethod
