@@ -1,4 +1,5 @@
 import json
+import os
 import time
 
 import brain
@@ -20,6 +21,7 @@ STATES = [
 ]
 
 TERMINAL = {"DONE", "ABANDONED"}
+MAX_REVIEW_RETRIES = int(os.environ.get("TEXTSHOP_MAX_REVIEW_RETRIES", "1"))
 
 
 def handle_message(thread_id, text, event=None, reply_to=None):
@@ -193,7 +195,11 @@ def on_build(job):
     job["data"]["sandbox_id"] = sandbox["sandbox_id"]
     store.save_job(job)
 
-    deck = brain.generate_deck(job["data"]["scope"])
+    scope = dict(job["data"]["scope"])
+    review_notes = job["data"].get("last_review_notes")
+    if review_notes:
+        scope["summary"] = f"{scope.get('summary', '')}. Reviewer revision notes: {review_notes}"
+    deck = brain.generate_deck(scope)
     job["data"]["deck"] = deck
     store.save_job(job)
     Band.post(
@@ -243,7 +249,11 @@ def on_verify(job):
 
     task = Terac.request_review(
         job["data"]["artifact_url"],
-        f"check claims and flag anything embarrassing: {job['data']['scope']['summary']}",
+        (
+            "Review this paid pitch deck before customer delivery. "
+            "Check clarity, design quality, obvious factual issues, and whether it feels worth the price. "
+            f"Customer brief: {job['data']['scope']['summary']}"
+        ),
         pricing.VERIFY_COST_CENTS,
     )
     result = Terac.poll_review(task["task_id"])
@@ -257,6 +267,18 @@ def on_verify(job):
     )
 
     if not result.get("approved"):
+        retries = int(job["data"].get("review_retries", 0))
+        if retries >= MAX_REVIEW_RETRIES:
+            store.log_decision(
+                "review_retry_limit",
+                "delivering after max review retries",
+                job_id=job["id"],
+                detail=result.get("notes"),
+            )
+            return "DELIVER"
+        job["data"]["review_retries"] = retries + 1
+        job["data"]["last_review_notes"] = result.get("notes", "revisions needed")
+        store.save_job(job)
         Band.post(job["data"]["room_id"], "reviewer", result.get("notes", "revisions needed"))
         return "BUILD"
     return "DELIVER"

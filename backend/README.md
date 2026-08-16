@@ -1,6 +1,6 @@
 # TextShop
 
-An agent that runs a deck-making business inside iMessage. Customer texts a real number, the agent qualifies, prices, builds in a sandbox, hires a human to verify, delivers, and collects — then reprices itself from what it learned.
+An agent that runs a deck-making business inside iMessage. Customer texts a real number, the agent qualifies, prices, collects payment, builds in a sandbox, hires a human to verify, delivers — then reprices itself from what it learned.
 
 ## Run it now
 
@@ -90,10 +90,11 @@ Subscribe to:
 checkout.session.completed
 ```
 
-When a deck is delivered, TextShop sends the customer a Stripe Checkout link in
+After the customer accepts a quote, TextShop sends a Stripe Checkout link in
 the Linq thread. After Stripe confirms `checkout.session.completed`, the job
-advances from `COLLECT` to `LEARN`, revenue is posted to P&L once, and the
-customer gets the confirmed payment message.
+advances from `COLLECT` to `BUILD`, revenue is posted to P&L once, and the
+customer gets the confirmed payment message. The deck is generated only after
+payment succeeds.
 
 Use Stripe's standard test card in the hosted Checkout page:
 
@@ -167,7 +168,7 @@ TEXTSHOP_SEED_CENTS=5000
 ## State machine
 
 ```
-INBOUND -> QUALIFY -> QUOTE -> NEGOTIATE -> BUILD -> VERIFY -> DELIVER -> COLLECT -> LEARN -> DONE
+INBOUND -> QUALIFY -> QUOTE -> NEGOTIATE -> COLLECT -> BUILD -> VERIFY -> DELIVER -> LEARN -> DONE
 ```
 
 `advance()` runs transitions until a state needs new customer input, then returns. Every state is persisted, so the process can restart mid-job without losing a thread.
@@ -176,7 +177,7 @@ INBOUND -> QUALIFY -> QUOTE -> NEGOTIATE -> BUILD -> VERIFY -> DELIVER -> COLLEC
 
 1. **Repricing.** `pricing.quote_cents()` reads the last 8 outcomes. Acceptance above 70% raises price 15%, below 40% lowers it. Show quote #1 vs quote #10.
 2. **Walking away.** In `NEGOTIATE`, if a counter would fall under 2x cost, the agent declines the job. Nobody told it to.
-3. **Skipping verification.** In `VERIFY`, the agent refuses to pay for human review when the float is low or the job is too cheap to justify it.
+3. **Skipping verification.** In `VERIFY`, the agent refuses to pay for human review when the float is low or the job is too cheap to justify it. If a reviewer rejects the deck, the agent rebuilds once using review notes, then stops retrying to protect its budget.
 
 ## Band dependency (required for that track)
 

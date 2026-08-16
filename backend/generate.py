@@ -20,34 +20,74 @@ WHITE = colors.white
 
 THEMES = [
     {
-        "name": "blueprint",
+        "name": "fintech_dark",
         "accent": "#175CFF",
         "accent_2": "#28B6F6",
-        "dark": "#111827",
+        "dark": "#0A1020",
         "warm": "#F4D35E",
+        "paper": "#F5F7FB",
+        "line": "#D7DCE8",
+        "ink": "#111827",
+        "muted": "#536071",
     },
     {
-        "name": "evergreen",
+        "name": "climate_green",
         "accent": "#087F5B",
         "accent_2": "#63D471",
         "dark": "#102A27",
         "warm": "#FFB703",
+        "paper": "#F3F7F0",
+        "line": "#D5DEC9",
+        "ink": "#12211D",
+        "muted": "#53685F",
     },
     {
-        "name": "signal",
+        "name": "consumer_bright",
+        "accent": "#FF3D77",
+        "accent_2": "#4C6FFF",
+        "dark": "#161327",
+        "warm": "#FFD166",
+        "paper": "#FFF7F9",
+        "line": "#EDD8E0",
+        "ink": "#1B1724",
+        "muted": "#675D72",
+    },
+    {
+        "name": "midnight_luxe",
         "accent": "#8F2DFF",
         "accent_2": "#FF5DA2",
         "dark": "#171321",
         "warm": "#FFD166",
+        "paper": "#F8F3EA",
+        "line": "#DED3C0",
+        "ink": "#171321",
+        "muted": "#62596B",
     },
     {
-        "name": "oxide",
+        "name": "enterprise_blue",
+        "accent": "#0057D8",
+        "accent_2": "#00A6A6",
+        "dark": "#071426",
+        "warm": "#FFCA3A",
+        "paper": "#F6F8FC",
+        "line": "#D5DDEB",
+        "ink": "#101624",
+        "muted": "#556170",
+    },
+    {
+        "name": "studio_light",
         "accent": "#D9480F",
-        "accent_2": "#F59F00",
+        "accent_2": "#7C3AED",
         "dark": "#211816",
         "warm": "#9AE6B4",
+        "paper": "#FAF6EF",
+        "line": "#DED4C7",
+        "ink": "#201A18",
+        "muted": "#6A5D56",
     },
 ]
+
+THEMES_BY_NAME = {theme["name"]: theme for theme in THEMES}
 
 
 def hx(value):
@@ -55,9 +95,21 @@ def hx(value):
 
 
 def theme_for(deck):
+    requested = str(deck.get("theme", "")).strip().lower()
+    if requested in THEMES_BY_NAME:
+        return THEMES_BY_NAME[requested]
     seed = f"{deck.get('title', '')} {deck.get('subtitle', '')}".lower()
     score = sum(ord(ch) for ch in seed)
     return THEMES[score % len(THEMES)]
+
+
+def tc(theme, key, fallback):
+    return hx(theme.get(key, fallback))
+
+
+def variant_for(deck, slide=None, index=0):
+    seed = f"{deck.get('title', '')} {deck.get('visual_style', '')} {slide or ''} {index}"
+    return sum(ord(ch) for ch in str(seed)) % 3
 
 
 def clamp(text, n):
@@ -114,8 +166,35 @@ def rounded(c, x, y, w, h, r=14, fill=WHITE, stroke=None, width=1):
         c.roundRect(x, y, w, h, r, fill=1, stroke=0)
 
 
+def slide_background(c, theme, variant=0):
+    paper = tc(theme, "paper", "#F7F4EE")
+    line = tc(theme, "line", "#DDD7CB")
+    c.setFillColor(paper)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+
+    if variant == 0:
+        c.setFillColor(colors.Color(*hx(theme["accent"]).rgb(), alpha=0.08))
+        c.rect(0, H - 0.52 * inch, W, 0.52 * inch, fill=1, stroke=0)
+        c.setStrokeColor(line)
+        c.setLineWidth(0.8)
+        c.line(MARGIN, H - 0.52 * inch, W - MARGIN, H - 0.52 * inch)
+    elif variant == 1:
+        gradient(c, W - 1.45 * inch, 0, 1.45 * inch, H, theme["accent"], theme["accent_2"], steps=65)
+        c.setFillColor(colors.Color(1, 1, 1, 0.42))
+        for y in [1.0, 2.45, 3.9]:
+            c.circle(W - 0.72 * inch, y * inch, 0.32 * inch, fill=1, stroke=0)
+    else:
+        c.setStrokeColor(colors.Color(*hx(theme["accent"]).rgb(), alpha=0.13))
+        c.setLineWidth(0.7)
+        step = 0.42 * inch
+        x = -1.0 * inch
+        while x < W + 1.0 * inch:
+            c.line(x, 0, x + H, H)
+            x += step
+
+
 def footer(c, index, total, theme):
-    c.setFillColor(MUTED)
+    c.setFillColor(tc(theme, "muted", "#596171"))
     c.setFont("Helvetica", 8)
     c.drawString(MARGIN, 0.25 * inch, "textshop")
     c.drawRightString(W - MARGIN, 0.25 * inch, f"{index:02d} / {total:02d}")
@@ -124,7 +203,7 @@ def footer(c, index, total, theme):
     c.line(MARGIN, 0.39 * inch, MARGIN + 0.8 * inch, 0.39 * inch)
 
 
-def draw_title_block(c, title, subtitle, theme):
+def draw_title_block(c, title, subtitle, theme, label="INVESTOR DECK"):
     c.setFillColor(WHITE)
     title_lines = wrap(c, title, "Helvetica-Bold", 43, W - 2 * MARGIN - 0.5 * inch)[:3]
     y = H - 1.35 * inch
@@ -151,7 +230,7 @@ def draw_title_block(c, title, subtitle, theme):
     )
     c.setFont("Helvetica-Bold", 8.5)
     c.setFillColor(WHITE)
-    c.drawCentredString(W - MARGIN - 0.9 * inch, H - MARGIN - 0.33 * inch, "INVESTOR DECK")
+    c.drawCentredString(W - MARGIN - 0.9 * inch, H - MARGIN - 0.33 * inch, clamp(label, 22).upper())
 
 
 def draw_big_number(c, value, label, x, y, w, theme):
@@ -172,7 +251,8 @@ def title_slide(c, deck, theme):
 
     title = deck.get("title") or "Pitch Deck"
     subtitle = deck.get("subtitle") or "A sharper story, built by TextShop."
-    draw_title_block(c, title, subtitle, theme)
+    label = deck.get("visual_style") or deck.get("theme") or "investor deck"
+    draw_title_block(c, title, subtitle, theme, label)
 
     metrics = deck.get("metrics") or [
         {"value": f"{len(deck.get('slides', []))}", "label": "slides"},
@@ -203,7 +283,7 @@ def draw_header(c, slide, index, total, theme):
     c.setFont("Helvetica-Bold", 8.5)
     c.drawString(MARGIN, H - MARGIN + 0.03 * inch, slide_kicker(slide, index).upper())
 
-    c.setFillColor(INK)
+    c.setFillColor(tc(theme, "ink", "#12151C"))
     y = H - MARGIN - 0.33 * inch
     for line in wrap(c, slide.get("heading", ""), "Helvetica-Bold", 29, W - 2 * MARGIN)[:2]:
         c.setFont("Helvetica-Bold", 29)
@@ -216,7 +296,7 @@ def draw_header(c, slide, index, total, theme):
 def draw_bullet(c, x, y, text, theme, max_width, size=13.4):
     c.setFillColor(hx(theme["accent"]))
     c.circle(x + 0.04 * inch, y + 0.06 * inch, 3.2, fill=1, stroke=0)
-    c.setFillColor(INK)
+    c.setFillColor(tc(theme, "ink", "#12151C"))
     lines = wrap(c, text, "Helvetica", size, max_width)
     for i, line in enumerate(lines[:3]):
         c.setFont("Helvetica", size)
@@ -235,33 +315,38 @@ def draw_note(c, slide, theme):
 
 
 def bullets_slide(c, slide, index, total, theme):
-    c.setFillColor(PAPER)
-    c.rect(0, 0, W, H, fill=1, stroke=0)
+    slide_background(c, theme, index % 3)
     y = draw_header(c, slide, index, total, theme)
     bullets = slide.get("bullets", [])
     card_h = max(0.62 * inch, min(0.9 * inch, 3.5 * inch / max(len(bullets), 1)))
     for bullet in bullets[:5]:
-        rounded(c, MARGIN, y - card_h + 0.08 * inch, W - 2 * MARGIN, card_h, r=16, fill=WHITE, stroke=LINE)
-        draw_bullet(c, MARGIN + 0.22 * inch, y - 0.22 * inch, bullet, theme, W - 2 * MARGIN - 0.65 * inch)
+        rounded(c, MARGIN, y - card_h + 0.08 * inch, W - 2 * MARGIN, card_h, r=16, fill=WHITE, stroke=tc(theme, "line", "#DDD7CB"))
+        c.setFillColor(colors.Color(*hx(theme["accent"]).rgb(), alpha=0.08))
+        c.rect(MARGIN, y - card_h + 0.08 * inch, 0.12 * inch, card_h, fill=1, stroke=0)
+        draw_bullet(c, MARGIN + 0.28 * inch, y - 0.22 * inch, bullet, theme, W - 2 * MARGIN - 0.72 * inch)
         y -= card_h + 0.11 * inch
     draw_note(c, slide, theme)
     c.showPage()
 
 
 def split_slide(c, slide, index, total, theme):
-    c.setFillColor(PAPER)
-    c.rect(0, 0, W, H, fill=1, stroke=0)
+    slide_background(c, theme, index % 3)
     y = draw_header(c, slide, index, total, theme)
 
     left_w = 4.05 * inch
-    rounded(c, MARGIN, MARGIN + 0.76 * inch, left_w, y - MARGIN - 0.98 * inch, r=18, fill=WHITE, stroke=LINE)
+    if index % 2 == 0:
+        left_w = 3.55 * inch
+    rounded(c, MARGIN, MARGIN + 0.76 * inch, left_w, y - MARGIN - 0.98 * inch, r=18, fill=WHITE, stroke=tc(theme, "line", "#DDD7CB"))
     ly = y - 0.22 * inch
     for bullet in slide.get("bullets", [])[:4]:
         ly = draw_bullet(c, MARGIN + 0.25 * inch, ly, bullet, theme, left_w - 0.55 * inch)
 
     rx = MARGIN + left_w + 0.36 * inch
     rw = W - rx - MARGIN
-    gradient(c, rx, MARGIN + 0.76 * inch, rw, y - MARGIN - 0.98 * inch, theme["accent"], theme["accent_2"], steps=55)
+    if index % 2 == 0:
+        gradient(c, rx, MARGIN + 0.76 * inch, rw, y - MARGIN - 0.98 * inch, theme["dark"], theme["accent"], steps=55)
+    else:
+        gradient(c, rx, MARGIN + 0.76 * inch, rw, y - MARGIN - 0.98 * inch, theme["accent"], theme["accent_2"], steps=55)
     rounded(c, rx, MARGIN + 0.76 * inch, rw, y - MARGIN - 0.98 * inch, r=18, fill=colors.Color(1, 1, 1, 0), stroke=None)
     c.setFillColor(WHITE)
     c.setFont("Helvetica-Bold", 52)
@@ -276,8 +361,7 @@ def split_slide(c, slide, index, total, theme):
 
 
 def grid_slide(c, slide, index, total, theme):
-    c.setFillColor(PAPER)
-    c.rect(0, 0, W, H, fill=1, stroke=0)
+    slide_background(c, theme, index % 3)
     y = draw_header(c, slide, index, total, theme)
     bullets = slide.get("bullets", [])[:4]
     gap = 0.18 * inch
@@ -288,11 +372,14 @@ def grid_slide(c, slide, index, total, theme):
         row = i // 2
         x = MARGIN + col * (card_w + gap)
         cy = y - row * (card_h + gap) - card_h
-        rounded(c, x, cy, card_w, card_h, r=18, fill=WHITE, stroke=LINE)
+        rounded(c, x, cy, card_w, card_h, r=18, fill=WHITE, stroke=tc(theme, "line", "#DDD7CB"))
         c.setFillColor(hx(theme["accent"]))
         c.setFont("Helvetica-Bold", 10)
         c.drawString(x + 0.18 * inch, cy + card_h - 0.28 * inch, f"0{i + 1}")
-        c.setFillColor(INK)
+        if index % 3 == 1:
+            c.setFillColor(colors.Color(*hx(theme["accent"]).rgb(), alpha=0.08))
+            c.circle(x + card_w - 0.32 * inch, cy + 0.32 * inch, 0.22 * inch, fill=1, stroke=0)
+        c.setFillColor(tc(theme, "ink", "#12151C"))
         c.setFont("Helvetica-Bold", 15)
         lines = wrap(c, bullet, "Helvetica-Bold", 15, card_w - 0.36 * inch)
         for j, line in enumerate(lines[:3]):
@@ -302,23 +389,22 @@ def grid_slide(c, slide, index, total, theme):
 
 
 def chart_slide(c, slide, index, total, theme):
-    c.setFillColor(PAPER)
-    c.rect(0, 0, W, H, fill=1, stroke=0)
+    slide_background(c, theme, index % 3)
     y = draw_header(c, slide, index, total, theme)
     bullets = slide.get("bullets", [])[:4]
     chart_x = MARGIN
     chart_y = MARGIN + 0.8 * inch
     chart_w = W - 2 * MARGIN
     chart_h = y - chart_y - 0.18 * inch
-    rounded(c, chart_x, chart_y, chart_w, chart_h, r=20, fill=WHITE, stroke=LINE)
+    rounded(c, chart_x, chart_y, chart_w, chart_h, r=20, fill=WHITE, stroke=tc(theme, "line", "#DDD7CB"))
     for i, bullet in enumerate(bullets):
         value = 0.36 + (i + 1) * 0.13
         bar_w = (chart_w - 1.8 * inch) * min(value, 0.92)
         by = chart_y + chart_h - 0.65 * inch - i * 0.62 * inch
-        c.setFillColor(MUTED)
+        c.setFillColor(tc(theme, "muted", "#596171"))
         c.setFont("Helvetica", 10)
         c.drawString(chart_x + 0.28 * inch, by + 0.08 * inch, clamp(bullet, 34))
-        rounded(c, chart_x + 1.75 * inch, by, chart_w - 2.1 * inch, 0.22 * inch, r=6, fill=hx("#ECE7DC"))
+        rounded(c, chart_x + 1.75 * inch, by, chart_w - 2.1 * inch, 0.22 * inch, r=6, fill=tc(theme, "line", "#DDD7CB"))
         rounded(c, chart_x + 1.75 * inch, by, bar_w, 0.22 * inch, r=6, fill=hx(theme["accent"]))
     c.showPage()
 

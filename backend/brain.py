@@ -120,6 +120,8 @@ Return ONLY a JSON object, no preamble, no markdown:
 {
   "title": "deck title",
   "subtitle": "one line positioning",
+  "theme": "fintech_dark | studio_light | consumer_bright | enterprise_blue | climate_green | midnight_luxe",
+  "visual_style": "2 to 5 words describing the design direction",
   "metrics": [
     {"value": "short number or proof point", "label": "what it means"}
   ],
@@ -135,6 +137,10 @@ Return ONLY a JSON object, no preamble, no markdown:
   ]
 }
 Make the deck feel designed: each slide needs a clear takeaway, not a generic label.
+Pick a theme that matches the company category and audience. Use fintech_dark or
+enterprise_blue for B2B, finance, security, and infrastructure; consumer_bright for consumer
+apps and marketplaces; climate_green for climate, food, health, and sustainability;
+midnight_luxe for premium products; studio_light for clean general-purpose decks.
 Follow the investor arc: problem, solution, product, market, business model, traction,
 competition, team, ask. Adapt to the requested slide count.
 Use "chart" layout for market, traction, economics, or funnel slides. Use "grid" for product,
@@ -160,9 +166,12 @@ def generate_deck(scope):
         ("team", "The team has unfair context", "Why this group can execute"),
         ("ask", "The round buys one measurable milestone", "Amount, use of funds, and next proof point"),
     ][:slide_count]
+    theme = _fallback_theme(f"{company} {summary} {audience}")
     fallback = {
         "title": company,
         "subtitle": summary or f"A sharper story for {audience or 'the next audience'}",
+        "theme": theme,
+        "visual_style": _fallback_style(theme),
         "metrics": [
             {"value": str(slide_count), "label": "slide investor narrative"},
             {"value": "1", "label": "clear wedge"},
@@ -191,3 +200,29 @@ def generate_deck(scope):
         f"Slides: {slide_count}"
     )
     return _json_call(DECK_SYSTEM, user, fallback, max_tokens=4000)
+
+
+def _fallback_theme(text):
+    lowered = str(text or "").lower()
+    if any(w in lowered for w in ("fintech", "bank", "finance", "security", "infra", "api", "b2b")):
+        return "fintech_dark"
+    if any(w in lowered for w in ("climate", "energy", "health", "food", "sustain", "carbon")):
+        return "climate_green"
+    if any(w in lowered for w in ("luxury", "premium", "fashion", "creator", "studio")):
+        return "midnight_luxe"
+    if any(w in lowered for w in ("consumer", "marketplace", "social", "mobile", "app")):
+        return "consumer_bright"
+    if any(w in lowered for w in ("enterprise", "sales", "ops", "workflow", "saas")):
+        return "enterprise_blue"
+    return "studio_light"
+
+
+def _fallback_style(theme):
+    return {
+        "fintech_dark": "precise premium dark",
+        "studio_light": "clean editorial minimal",
+        "consumer_bright": "bright app launch",
+        "enterprise_blue": "crisp operator-grade",
+        "climate_green": "calm organic growth",
+        "midnight_luxe": "high-contrast premium",
+    }.get(theme, "clean investor ready")
