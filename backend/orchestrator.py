@@ -247,17 +247,43 @@ def on_verify(job):
         )
         return "DELIVER"
 
-    task = Terac.request_review(
-        job["data"]["artifact_url"],
-        (
-            "Review this paid pitch deck before customer delivery. "
-            "Check clarity, design quality, obvious factual issues, and whether it feels worth the price. "
-            f"Customer brief: {job['data']['scope']['summary']}"
-        ),
-        pricing.VERIFY_COST_CENTS,
-    )
+    task = job["data"].get("terac_task")
+    if not task:
+        task = Terac.request_review(
+            job["data"]["artifact_url"],
+            (
+                "Review this paid pitch deck before customer delivery. "
+                "Check clarity, design quality, obvious factual issues, and whether it feels worth the price. "
+                f"Customer brief: {job['data']['scope']['summary']}"
+            ),
+            pricing.VERIFY_COST_CENTS,
+        )
+        job["data"]["terac_task"] = task
+        store.save_job(job)
+
+    if task.get("error") and task.get("launched") is False:
+        store.log_decision(
+            "terac_not_launched",
+            "Terac review was not launched",
+            job_id=job["id"],
+            detail=task.get("error"),
+        )
+        return "DELIVER"
+
     result = Terac.poll_review(task["task_id"])
-    cost = result.get("cost_cents", pricing.VERIFY_COST_CENTS)
+    job["data"]["terac_result"] = result
+    store.save_job(job)
+
+    if result.get("status") == "pending":
+        store.log_decision(
+            "terac_pending",
+            "Terac review job is waiting for a human submission",
+            job_id=job["id"],
+            detail=str(task.get("dashboard_url") or result.get("dashboard_url") or result),
+        )
+        return None
+
+    cost = result.get("cost_cents") or task.get("cost_cents") or pricing.VERIFY_COST_CENTS
     job["data"]["verify_cost_cents"] = cost
     job["data"]["verify_notes"] = result.get("notes")
     store.save_job(job)

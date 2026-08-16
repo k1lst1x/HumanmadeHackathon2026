@@ -104,12 +104,37 @@ any future expiry
 any CVC
 ```
 
-## Terac and Band fallback mode
+## Terac
 
-`TERAC_API_KEY` and `BAND_API_KEY` can be present in production env without
-crashing the customer flow. Until the real sponsor APIs are wired, TextShop logs
-`fallback` calls, approves the review/verdict, and keeps the order moving to
-delivery and Stripe Checkout.
+TextShop creates a real Terac opportunity after the deck PDF is generated. The
+reviewer receives the artifact URL and a rubric, then TextShop polls Terac
+submissions. If the review is still pending, the job stays in `VERIFY` instead
+of delivering or rebuilding prematurely.
+
+```
+TERAC_API_KEY=
+TERAC_PROJECT_NAME=TextShop
+TERAC_AUTO_LAUNCH=1
+TERAC_MAX_REVIEW_CENTS=2000
+TERAC_POLL_SECONDS=20
+```
+
+Use this to verify that a job offer can be created and launched:
+
+```
+cd backend
+python scripts/test_terac_review.py
+```
+
+The script prints the Terac opportunity id, launch status, dashboard URL, and
+estimated cost. Keep the cap high enough for the hackathon proof path; our smoke
+test priced a fast review around $16.50.
+
+## Band fallback mode
+
+`BAND_API_KEY` can be present in production env without crashing the customer
+flow. Until the real sponsor API is wired, TextShop logs `fallback` calls,
+approves the verdict, and keeps the order moving.
 
 ## Database
 
@@ -163,6 +188,10 @@ SUPERSERVE_AUTO_DELETE_SECONDS=86400
 TEXTSHOP_PUBLIC_BASE_URL=http://localhost:8000
 DATABASE_URL=
 TERAC_API_KEY=
+TERAC_PROJECT_NAME=TextShop
+TERAC_AUTO_LAUNCH=1
+TERAC_MAX_REVIEW_CENTS=2000
+TERAC_POLL_SECONDS=20
 STRIPE_API_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_CURRENCY=usd
