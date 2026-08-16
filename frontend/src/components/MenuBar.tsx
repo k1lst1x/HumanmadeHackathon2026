@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { site } from "@/lib/site";
 import { Wifi, Battery, MsgIcon } from "./ui";
@@ -56,8 +57,18 @@ export default function MenuBar() {
       className="fixed inset-x-0 top-0 z-50 border-b border-black/10 bg-desk/85 backdrop-blur-xl"
     >
       <div className="flex h-[38px] items-center gap-1 px-3 sm:gap-4 sm:px-5">
-        <a href="#top" className="shrink-0 text-[14px] font-semibold tap-target">
-          textshop
+        <a
+          href="#top"
+          className="flex shrink-0 items-center gap-1.5 text-[14px] font-semibold tap-target"
+          aria-label="TextShop home"
+        >
+          <Image
+            src="/textshop-logo.svg"
+            alt=""
+            width={86}
+            height={28}
+            className="h-6 w-auto"
+          />
         </a>
 
         <nav className="hidden items-center gap-4 md:flex">

@@ -15,11 +15,16 @@ const mono = Geist_Mono({
 
 const title = "textshop — pitch decks by text, usually done in an hour";
 const description =
-  "text a number, get a price in ninety seconds, and the deck lands in the same thread — checked by a real human before it's sent. you pay after you've seen it. no account, no dashboard, no call.";
+  "text a number, get a price in ninety seconds, pay from the thread, and the deck lands back in Messages after a real human review. no account, no dashboard, no call.";
 
 export const metadata: Metadata = {
   title,
   description,
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
   openGraph: { title, description, type: "website" },
   twitter: { card: "summary_large_image", title, description },
 };

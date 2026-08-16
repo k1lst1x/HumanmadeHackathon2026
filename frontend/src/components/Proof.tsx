@@ -37,7 +37,7 @@ export default function Proof() {
             get one like this
           </SmsAqua>
           <p className="text-[12.5px] text-mute">
-            quote back in ninety seconds · you pay after you&apos;ve seen it
+            quote back in ninety seconds · pay once the price looks right
           </p>
         </div>
 

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 240" role="img" aria-labelledby="title desc">
+  <title id="title">TextShop logo</title>
+  <desc id="desc">A message bubble over a shopping bag with the TextShop wordmark.</desc>
+  <defs>
+    <linearGradient id="bubble" x1="86" y1="40" x2="248" y2="196" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6675ff"/>
+      <stop offset="1" stop-color="#4b3fff"/>
+    </linearGradient>
+  </defs>
+  <rect width="760" height="240" fill="none"/>
+  <g transform="translate(30 12)">
+    <path d="M148 64c0-39 31-64 67-64s67 25 67 64" fill="none" stroke="#12192d" stroke-width="18" stroke-linecap="round"/>
+    <path d="M210 64h94c29 0 48 19 50 48l7 80c2 24-14 42-38 42H202c24-9 38-30 38-58v-74c0-16-11-31-30-38Z" fill="#12192d"/>
+    <path d="M68 64h178c28 0 50 22 50 50v78c0 28-22 50-50 50h-93l-43 34c-9 7-22 0-20-12l6-24H68c-28 0-50-22-50-50v-76c0-28 22-50 50-50Z" fill="url(#bubble)"/>
+    <circle cx="96" cy="154" r="15" fill="#fff"/>
+    <circle cx="154" cy="154" r="15" fill="#fff"/>
+    <circle cx="212" cy="154" r="15" fill="#fff"/>
+  </g>
+  <g font-family="Inter, Arial, Helvetica, sans-serif" font-size="78" font-weight="800" letter-spacing="0">
+    <text x="375" y="145" fill="#4f46ff">Text</text>
+    <text x="530" y="145" fill="#111827">Shop</text>
+  </g>
+</svg>

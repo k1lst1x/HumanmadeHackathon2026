@@ -37,7 +37,7 @@ export const trustBar = [
   `${stats.delivered} decks delivered`,
   `median ${stats.median} start to finish`,
   "checked by a human before it ships",
-  "you pay after you see it",
+  "pay first, then we build",
 ] as const;
 
 export const steps = [
@@ -56,7 +56,7 @@ export const steps = [
   {
     n: "03",
     t: "the deck shows up",
-    d: "built, reviewed by a real human expert, delivered as a pdf in the same thread. you pay after it lands.",
+    d: "after checkout, it's built, reviewed by a real human expert, and delivered as a pdf in the same thread.",
     tag: `median ${stats.median}`,
   },
 ] as const;
@@ -72,9 +72,9 @@ export const included = [
 
 /* TODO: confirm these match what the agent actually does before publishing. */
 export const promise = {
-  title: "you pay after you've seen it.",
+  title: "you pay, then the company starts.",
   body:
-    "the deck is delivered before the checkout card is. if it's wrong, say so in the thread — you get a revision, or you walk and pay nothing. there is no invoice to argue with and nobody to escalate to.",
+    "checkout happens before production so the agent can spend real money on sandbox compute and human review. if the first pass is off, say so in the thread and it rebuilds with the reviewer notes.",
 } as const;
 
 export const tiers = [

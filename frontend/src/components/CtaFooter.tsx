@@ -38,7 +38,7 @@ export default function CtaFooter() {
 
           <p className="mt-4 text-[13px] text-mute">
             quote back in ninety seconds · median {stats.median} to delivery ·
-            you pay after you see it
+            checkout starts the build
           </p>
         </div>
       </section>

@@ -92,10 +92,10 @@ export default function Hero() {
 
         <p className="mx-auto mt-5 max-w-xl animate-rise text-[15.5px] leading-relaxed text-mute [animation-delay:110ms] sm:text-[16.5px]">
           you text what you need. a price comes back in ninety seconds. the deck
-          lands in the same thread, checked by a real human before it&apos;s
-          sent.{" "}
+          starts after checkout, then lands in the same thread checked by a real
+          human before it&apos;s sent.{" "}
           <span className="font-medium text-ink">
-            you pay after you&apos;ve seen it.
+            real money in, real work out.
           </span>
         </p>
 

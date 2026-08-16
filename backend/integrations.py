@@ -759,4 +759,7 @@ class Stripe:
             return None
         import stripe
 
-        return stripe.Webhook.construct_event(body, signature, webhook_secret)
+        event = stripe.Webhook.construct_event(body, signature, webhook_secret)
+        if hasattr(event, "to_dict_recursive"):
+            return event.to_dict_recursive()
+        return dict(event)
