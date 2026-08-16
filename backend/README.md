@@ -113,8 +113,12 @@ delivery and Stripe Checkout.
 
 ## Database
 
-You can connect the database before deployment. Create a Render Postgres
-database in the same region as the backend service, then run:
+TextShop uses SQLite only when `DATABASE_URL` is not set. In production, set
+`DATABASE_URL` on the Render backend service and the app automatically persists
+jobs, decisions, ledger entries, and outcomes in Postgres.
+
+Create a Render Postgres database in the same region as the backend service.
+The app runs the required schema on startup, and the same schema is available at:
 
 ```
 backend/db/postgres_schema.sql
@@ -129,7 +133,9 @@ DATABASE_URL=postgresql://USER:PASSWORD@HOST/DATABASE
 
 Use Render's internal database URL from Render services in the same workspace
 and region. Use the external database URL from your laptop, n8n, or any service
-outside Render. Keep `DATABASE_URL` out of Git.
+outside Render. Keep `DATABASE_URL` out of Git. The dashboard and `/pnl`
+endpoint read directly from whichever database backend is active and include
+`db_backend` so you can confirm production says `postgres`.
 
 ## File ownership — one person per file, no exceptions
 

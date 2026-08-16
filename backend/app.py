@@ -212,12 +212,18 @@ def get_pnl():
     data = store.pnl()
     data["decisions"] = store.recent_decisions(25)
     data["outcomes"] = store.recent_outcomes(15)
+    data["jobs"] = store.recent_jobs(20)
+    data["ledger"] = store.recent_ledger(25)
     return data
 
 
 @app.get("/health")
 def health():
-    return {"ok": True, "balance_cents": store.balance_cents()}
+    return {
+        "ok": True,
+        "db_backend": store.backend_name(),
+        "balance_cents": store.balance_cents(),
+    }
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -234,33 +240,65 @@ DASHBOARD = """
   body { margin:0; background:#0B0D12; color:#E7EAF0;
          font:15px/1.5 ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif; padding:32px 40px; }
   h1 { font-size:20px; letter-spacing:.02em; margin:0 0 4px; }
-  .sub { color:#7A8598; font-size:13px; margin-bottom:28px; }
+  .sub { color:#9AA7BA; font-size:13px; margin-bottom:28px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .pill { border:1px solid #2B3444; border-radius:999px; padding:3px 9px; color:#C7D2E5; background:#121722; font:11px ui-monospace,monospace; text-transform:uppercase; letter-spacing:.06em; }
   .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-bottom:32px; }
   .card { background:#141821; border:1px solid #1F2531; border-radius:10px; padding:16px 18px; }
-  .label { color:#7A8598; font-size:11px; text-transform:uppercase; letter-spacing:.09em; }
+  .label { color:#9AA7BA; font-size:11px; text-transform:uppercase; letter-spacing:.09em; }
   .val { font-size:28px; font-weight:600; margin-top:6px; font-variant-numeric:tabular-nums; }
   .pos { color:#4ADE80; } .neg { color:#F87171; }
-  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.09em; color:#7A8598;
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.09em; color:#9AA7BA;
        margin:0 0 12px; font-weight:600; }
   ul { list-style:none; padding:0; margin:0; }
-  li { padding:10px 0; border-bottom:1px solid #1A1F2A; display:flex; gap:12px; }
+  li { padding:10px 0; border-bottom:1px solid #1A1F2A; display:flex; gap:12px; align-items:flex-start; }
   .kind { color:#60A5FA; font-size:12px; min-width:150px; font-family:ui-monospace,monospace; }
-  .cols { display:grid; grid-template-columns:1.4fr 1fr; gap:40px; }
+  .cols { display:grid; grid-template-columns:1.35fr 1fr; gap:40px; margin-bottom:34px; }
+  .section { min-width:0; }
   .price { font-variant-numeric:tabular-nums; }
   .ok { color:#4ADE80; } .no { color:#F87171; }
+  .muted { color:#9AA7BA; }
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+  .job { display:grid; grid-template-columns:88px 92px 1fr 74px; gap:12px; }
+  .state { color:#FBBF24; }
+  .small { font-size:12px; }
+  a { color:#93C5FD; }
+  @media (max-width: 850px) {
+    body { padding:22px; }
+    .cols { grid-template-columns:1fr; }
+    .job { grid-template-columns:1fr; gap:4px; }
+  }
 </style>
 <h1>TextShop</h1>
-<div class="sub">a company with no employees &middot; live</div>
+<div class="sub">
+  <span>a company with no employees &middot; live</span>
+  <span class="pill" id="db">database</span>
+</div>
 <div class="grid" id="stats"></div>
 <div class="cols">
-  <div><h2>Decisions the agent made</h2><ul id="decisions"></ul></div>
-  <div><h2>Pricing history</h2><ul id="outcomes"></ul></div>
+  <div class="section"><h2>Orders in the database</h2><ul id="jobs"></ul></div>
+  <div class="section"><h2>Ledger</h2><ul id="ledger"></ul></div>
+</div>
+<div class="cols">
+  <div class="section"><h2>Decisions the agent made</h2><ul id="decisions"></ul></div>
+  <div class="section"><h2>Pricing history</h2><ul id="outcomes"></ul></div>
 </div>
 <script>
 const money = c => '$' + (c/100).toFixed(2);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ({
+  '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+}[ch]));
+const ago = ts => {
+  if (!ts) return '';
+  const seconds = Math.max(0, Math.round(Date.now()/1000 - ts));
+  if (seconds < 60) return seconds + 's ago';
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return minutes + 'm ago';
+  return Math.round(minutes / 60) + 'h ago';
+};
 async function tick() {
   const r = await fetch('/pnl');
   const d = await r.json();
+  document.getElementById('db').textContent = esc(d.db_backend || 'database');
   const margin = d.revenue_cents ?
     Math.round(100*(d.revenue_cents - d.verify_spend_cents - d.compute_spend_cents)/d.revenue_cents) : 0;
   document.getElementById('stats').innerHTML = [
@@ -272,8 +310,20 @@ async function tick() {
     ['In flight', d.jobs_open, '']
   ].map(([l,v,c]) => `<div class="card"><div class="label">${l}</div>
      <div class="val ${c}">${v}</div></div>`).join('');
+  document.getElementById('jobs').innerHTML = (d.jobs || []).map(x => {
+    const artifact = x.artifact_url ? `<a href="${esc(x.artifact_url)}">PDF</a>` : '<span class="muted">no PDF yet</span>';
+    return `<li class="job">
+      <span class="mono">${esc(x.id)}</span>
+      <span class="state mono">${esc(x.state)}</span>
+      <span>${esc(x.scope || x.thread_id)}<br><span class="muted small">${esc(x.thread_id)} · ${ago(x.updated_at)}</span></span>
+      <span>${artifact}</span>
+    </li>`;
+  }).join('');
+  document.getElementById('ledger').innerHTML = (d.ledger || []).map(x =>
+    `<li><span class="kind">${esc(x.kind)}</span><span class="${x.amount_cents >= 0 ? 'ok' : 'neg'}">${money(Math.abs(x.amount_cents))}</span><span class="muted">${esc(x.note || '')}</span></li>`
+  ).join('');
   document.getElementById('decisions').innerHTML = d.decisions.map(x =>
-    `<li><span class="kind">${x.kind}</span><span>${x.summary}</span></li>`).join('');
+    `<li><span class="kind">${esc(x.kind)}</span><span>${esc(x.summary)}</span></li>`).join('');
   document.getElementById('outcomes').innerHTML = d.outcomes.map(x =>
     `<li><span class="price">${money(x.price_cents)}</span>
      <span class="${x.accepted ? 'ok' : 'no'}">${x.accepted ? 'accepted' : 'declined'}</span></li>`).join('');

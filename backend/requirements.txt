@@ -6,3 +6,4 @@ python-dotenv
 requests
 superserve
 stripe
+psycopg[binary]
