@@ -11,11 +11,8 @@ from reportlab.pdfgen import canvas
 PAGE = landscape((10 * inch, 5.625 * inch))
 W, H = PAGE
 MARGIN = 0.46 * inch
+SAFE_BOTTOM = 0.74 * inch
 
-INK = colors.HexColor("#12151C")
-MUTED = colors.HexColor("#596171")
-PAPER = colors.HexColor("#F7F4EE")
-LINE = colors.HexColor("#DDD7CB")
 WHITE = colors.white
 
 THEMES = [
@@ -107,11 +104,6 @@ def tc(theme, key, fallback):
     return hx(theme.get(key, fallback))
 
 
-def variant_for(deck, slide=None, index=0):
-    seed = f"{deck.get('title', '')} {deck.get('visual_style', '')} {slide or ''} {index}"
-    return sum(ord(ch) for ch in str(seed)) % 3
-
-
 def clamp(text, n):
     text = str(text or "").strip()
     return text if len(text) <= n else text[: n - 1].rstrip() + "..."
@@ -133,6 +125,15 @@ def wrap(c, text, font, size, max_width):
     if line:
         lines.append(line)
     return lines
+
+
+def fit_size(c, text, font, start_size, max_width, max_lines, min_size=20):
+    size = start_size
+    while size > min_size:
+        if len(wrap(c, text, font, size, max_width)) <= max_lines:
+            return size
+        size -= 1
+    return min_size
 
 
 def lerp(a, b, t):
@@ -173,16 +174,17 @@ def slide_background(c, theme, variant=0):
     c.rect(0, 0, W, H, fill=1, stroke=0)
 
     if variant == 0:
-        c.setFillColor(colors.Color(*hx(theme["accent"]).rgb(), alpha=0.08))
-        c.rect(0, H - 0.52 * inch, W, 0.52 * inch, fill=1, stroke=0)
+        gradient(c, 0, H - 0.48 * inch, W, 0.48 * inch, theme["accent"], theme["accent_2"], steps=30)
+        c.setFillColor(colors.Color(1, 1, 1, 0.88))
+        c.rect(0, H - 0.48 * inch, W, 0.48 * inch, fill=1, stroke=0)
         c.setStrokeColor(line)
         c.setLineWidth(0.8)
         c.line(MARGIN, H - 0.52 * inch, W - MARGIN, H - 0.52 * inch)
     elif variant == 1:
-        gradient(c, W - 1.45 * inch, 0, 1.45 * inch, H, theme["accent"], theme["accent_2"], steps=65)
-        c.setFillColor(colors.Color(1, 1, 1, 0.42))
-        for y in [1.0, 2.45, 3.9]:
-            c.circle(W - 0.72 * inch, y * inch, 0.32 * inch, fill=1, stroke=0)
+        gradient(c, W - 2.05 * inch, H - 0.62 * inch, 1.58 * inch, 0.22 * inch, theme["accent"], theme["accent_2"], steps=16)
+        gradient(c, W - 1.54 * inch, MARGIN, 1.07 * inch, 0.18 * inch, theme["accent_2"], theme["accent"], steps=16)
+        c.setFillColor(colors.Color(*hx(theme["accent"]).rgb(), alpha=0.09))
+        c.circle(W - 1.08 * inch, H - 1.08 * inch, 0.44 * inch, fill=1, stroke=0)
     else:
         c.setStrokeColor(colors.Color(*hx(theme["accent"]).rgb(), alpha=0.13))
         c.setLineWidth(0.7)
@@ -205,12 +207,14 @@ def footer(c, index, total, theme):
 
 def draw_title_block(c, title, subtitle, theme, label="INVESTOR DECK"):
     c.setFillColor(WHITE)
-    title_lines = wrap(c, title, "Helvetica-Bold", 43, W - 2 * MARGIN - 0.5 * inch)[:3]
+    title_width = W - 2 * MARGIN - 0.5 * inch
+    title_size = fit_size(c, title, "Helvetica-Bold", 43, title_width, 3, min_size=30)
+    title_lines = wrap(c, title, "Helvetica-Bold", title_size, title_width)[:3]
     y = H - 1.35 * inch
     for line in title_lines:
-        c.setFont("Helvetica-Bold", 43)
+        c.setFont("Helvetica-Bold", title_size)
         c.drawString(MARGIN, y, line)
-        y -= 0.52 * inch
+        y -= (title_size + 7) / 72 * inch
 
     c.setFillColor(colors.Color(1, 1, 1, 0.82))
     c.setFont("Helvetica", 15)
@@ -285,10 +289,12 @@ def draw_header(c, slide, index, total, theme):
 
     c.setFillColor(tc(theme, "ink", "#12151C"))
     y = H - MARGIN - 0.33 * inch
-    for line in wrap(c, slide.get("heading", ""), "Helvetica-Bold", 29, W - 2 * MARGIN)[:2]:
-        c.setFont("Helvetica-Bold", 29)
+    heading = slide.get("heading", "")
+    heading_size = fit_size(c, heading, "Helvetica-Bold", 29, W - 2 * MARGIN, 2, min_size=22)
+    for line in wrap(c, heading, "Helvetica-Bold", heading_size, W - 2 * MARGIN)[:2]:
+        c.setFont("Helvetica-Bold", heading_size)
         c.drawString(MARGIN, y, line)
-        y -= 0.38 * inch
+        y -= (heading_size + 7) / 72 * inch
     footer(c, index, total, theme)
     return y - 0.08 * inch
 
@@ -304,28 +310,19 @@ def draw_bullet(c, x, y, text, theme, max_width, size=13.4):
     return y - max(1, len(lines[:3])) * 0.19 * inch - 0.13 * inch
 
 
-def draw_note(c, slide, theme):
-    note = slide.get("note")
-    if not note:
-        return
-    rounded(c, MARGIN, MARGIN + 0.23 * inch, W - 2 * MARGIN, 0.42 * inch, r=10, fill=hx("#FFF9DB"))
-    c.setFillColor(hx("#5F4B00"))
-    c.setFont("Helvetica", 8.8)
-    c.drawString(MARGIN + 0.16 * inch, MARGIN + 0.39 * inch, clamp(note, 150))
-
-
 def bullets_slide(c, slide, index, total, theme):
     slide_background(c, theme, index % 3)
     y = draw_header(c, slide, index, total, theme)
     bullets = slide.get("bullets", [])
-    card_h = max(0.62 * inch, min(0.9 * inch, 3.5 * inch / max(len(bullets), 1)))
+    available = max(1.9 * inch, y - SAFE_BOTTOM - 0.16 * inch)
+    gap = 0.1 * inch
+    card_h = max(0.48 * inch, min(0.84 * inch, (available - gap * 4) / max(len(bullets[:5]), 1)))
     for bullet in bullets[:5]:
-        rounded(c, MARGIN, y - card_h + 0.08 * inch, W - 2 * MARGIN, card_h, r=16, fill=WHITE, stroke=tc(theme, "line", "#DDD7CB"))
+        rounded(c, MARGIN, y - card_h, W - 2 * MARGIN, card_h, r=14, fill=WHITE, stroke=tc(theme, "line", "#DDD7CB"))
         c.setFillColor(colors.Color(*hx(theme["accent"]).rgb(), alpha=0.08))
-        c.rect(MARGIN, y - card_h + 0.08 * inch, 0.12 * inch, card_h, fill=1, stroke=0)
-        draw_bullet(c, MARGIN + 0.28 * inch, y - 0.22 * inch, bullet, theme, W - 2 * MARGIN - 0.72 * inch)
-        y -= card_h + 0.11 * inch
-    draw_note(c, slide, theme)
+        c.rect(MARGIN, y - card_h, 0.1 * inch, card_h, fill=1, stroke=0)
+        draw_bullet(c, MARGIN + 0.28 * inch, y - 0.25 * inch, bullet, theme, W - 2 * MARGIN - 0.72 * inch, size=12.2)
+        y -= card_h + gap
     c.showPage()
 
 
@@ -336,27 +333,31 @@ def split_slide(c, slide, index, total, theme):
     left_w = 4.05 * inch
     if index % 2 == 0:
         left_w = 3.55 * inch
-    rounded(c, MARGIN, MARGIN + 0.76 * inch, left_w, y - MARGIN - 0.98 * inch, r=18, fill=WHITE, stroke=tc(theme, "line", "#DDD7CB"))
-    ly = y - 0.22 * inch
+    panel_y = SAFE_BOTTOM
+    panel_h = max(1.95 * inch, y - panel_y - 0.12 * inch)
+    rounded(c, MARGIN, panel_y, left_w, panel_h, r=18, fill=WHITE, stroke=tc(theme, "line", "#DDD7CB"))
+    ly = panel_y + panel_h - 0.32 * inch
     for bullet in slide.get("bullets", [])[:4]:
-        ly = draw_bullet(c, MARGIN + 0.25 * inch, ly, bullet, theme, left_w - 0.55 * inch)
+        if ly < panel_y + 0.34 * inch:
+            break
+        ly = draw_bullet(c, MARGIN + 0.25 * inch, ly, bullet, theme, left_w - 0.55 * inch, size=12.1)
 
     rx = MARGIN + left_w + 0.36 * inch
     rw = W - rx - MARGIN
     if index % 2 == 0:
-        gradient(c, rx, MARGIN + 0.76 * inch, rw, y - MARGIN - 0.98 * inch, theme["dark"], theme["accent"], steps=55)
+        gradient(c, rx, panel_y, rw, panel_h, theme["dark"], theme["accent"], steps=55)
     else:
-        gradient(c, rx, MARGIN + 0.76 * inch, rw, y - MARGIN - 0.98 * inch, theme["accent"], theme["accent_2"], steps=55)
-    rounded(c, rx, MARGIN + 0.76 * inch, rw, y - MARGIN - 0.98 * inch, r=18, fill=colors.Color(1, 1, 1, 0), stroke=None)
+        gradient(c, rx, panel_y, rw, panel_h, theme["accent"], theme["accent_2"], steps=55)
+    rounded(c, rx, panel_y, rw, panel_h, r=18, fill=colors.Color(1, 1, 1, 0), stroke=None)
     c.setFillColor(WHITE)
-    c.setFont("Helvetica-Bold", 52)
-    c.drawString(rx + 0.32 * inch, y - 0.95 * inch, str(index).zfill(2))
+    c.setFont("Helvetica-Bold", 42)
+    c.drawString(rx + 0.32 * inch, panel_y + panel_h - 0.72 * inch, str(index).zfill(2))
     c.setFont("Helvetica-Bold", 17)
-    c.drawString(rx + 0.34 * inch, y - 1.35 * inch, clamp(slide.get("callout") or slide.get("heading"), 38))
+    c.drawString(rx + 0.34 * inch, panel_y + panel_h - 1.12 * inch, clamp(slide.get("callout") or slide.get("heading"), 38))
     c.setFont("Helvetica", 11)
     c.setFillColor(colors.Color(1, 1, 1, 0.82))
     for i, line in enumerate(wrap(c, slide.get("note", ""), "Helvetica", 11, rw - 0.7 * inch)[:5]):
-        c.drawString(rx + 0.34 * inch, y - 1.72 * inch - i * 0.18 * inch, line)
+        c.drawString(rx + 0.34 * inch, panel_y + panel_h - 1.49 * inch - i * 0.18 * inch, line)
     c.showPage()
 
 
@@ -366,13 +367,14 @@ def grid_slide(c, slide, index, total, theme):
     bullets = slide.get("bullets", [])[:4]
     gap = 0.18 * inch
     card_w = (W - 2 * MARGIN - gap) / 2
-    card_h = 1.03 * inch
+    available = max(2.0 * inch, y - SAFE_BOTTOM - gap)
+    card_h = max(0.72 * inch, min(1.0 * inch, (available - gap) / 2))
     for i, bullet in enumerate(bullets):
         col = i % 2
         row = i // 2
         x = MARGIN + col * (card_w + gap)
-        cy = y - row * (card_h + gap) - card_h
-        rounded(c, x, cy, card_w, card_h, r=18, fill=WHITE, stroke=tc(theme, "line", "#DDD7CB"))
+        cy = y - 0.1 * inch - row * (card_h + gap) - card_h
+        rounded(c, x, cy, card_w, card_h, r=16, fill=WHITE, stroke=tc(theme, "line", "#DDD7CB"))
         c.setFillColor(hx(theme["accent"]))
         c.setFont("Helvetica-Bold", 10)
         c.drawString(x + 0.18 * inch, cy + card_h - 0.28 * inch, f"0{i + 1}")
@@ -380,11 +382,10 @@ def grid_slide(c, slide, index, total, theme):
             c.setFillColor(colors.Color(*hx(theme["accent"]).rgb(), alpha=0.08))
             c.circle(x + card_w - 0.32 * inch, cy + 0.32 * inch, 0.22 * inch, fill=1, stroke=0)
         c.setFillColor(tc(theme, "ink", "#12151C"))
-        c.setFont("Helvetica-Bold", 15)
-        lines = wrap(c, bullet, "Helvetica-Bold", 15, card_w - 0.36 * inch)
+        c.setFont("Helvetica-Bold", 13.4)
+        lines = wrap(c, bullet, "Helvetica-Bold", 13.4, card_w - 0.42 * inch)
         for j, line in enumerate(lines[:3]):
-            c.drawString(x + 0.18 * inch, cy + card_h - 0.55 * inch - j * 0.2 * inch, line)
-    draw_note(c, slide, theme)
+            c.drawString(x + 0.18 * inch, cy + card_h - 0.54 * inch - j * 0.18 * inch, line)
     c.showPage()
 
 
@@ -393,14 +394,15 @@ def chart_slide(c, slide, index, total, theme):
     y = draw_header(c, slide, index, total, theme)
     bullets = slide.get("bullets", [])[:4]
     chart_x = MARGIN
-    chart_y = MARGIN + 0.8 * inch
+    chart_y = SAFE_BOTTOM
     chart_w = W - 2 * MARGIN
-    chart_h = y - chart_y - 0.18 * inch
+    chart_h = max(1.9 * inch, y - chart_y - 0.18 * inch)
     rounded(c, chart_x, chart_y, chart_w, chart_h, r=20, fill=WHITE, stroke=tc(theme, "line", "#DDD7CB"))
     for i, bullet in enumerate(bullets):
         value = 0.36 + (i + 1) * 0.13
         bar_w = (chart_w - 1.8 * inch) * min(value, 0.92)
-        by = chart_y + chart_h - 0.65 * inch - i * 0.62 * inch
+        row_gap = min(0.58 * inch, (chart_h - 0.75 * inch) / max(len(bullets), 1))
+        by = chart_y + chart_h - 0.58 * inch - i * row_gap
         c.setFillColor(tc(theme, "muted", "#596171"))
         c.setFont("Helvetica", 10)
         c.drawString(chart_x + 0.28 * inch, by + 0.08 * inch, clamp(bullet, 34))
