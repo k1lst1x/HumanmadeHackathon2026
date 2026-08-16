@@ -260,6 +260,18 @@ def on_verify(job):
         )
         job["data"]["terac_task"] = task
         store.save_job(job)
+    else:
+        launched_task = Terac.ensure_launched(task)
+        if launched_task != task:
+            task = launched_task
+            job["data"]["terac_task"] = task
+            store.save_job(job)
+            store.log_decision(
+                "terac_launch_checked",
+                "checked Terac launch state",
+                job_id=job["id"],
+                detail=str(task.get("dashboard_url") or task.get("launch_error") or task),
+            )
 
     if task.get("error") and task.get("launched") is False:
         store.log_decision(

@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 import orchestrator
 import store
-from integrations import Stripe
+from integrations import Stripe, Terac
 
 app = FastAPI(title="TextShop")
 
@@ -223,6 +223,7 @@ def health():
         "ok": True,
         "db_backend": store.backend_name(),
         "balance_cents": store.balance_cents(),
+        "terac": Terac.config_status(),
     }
 
 

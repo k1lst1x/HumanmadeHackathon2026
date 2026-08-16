@@ -431,6 +431,17 @@ class Superserve:
 
 class Terac:
     @staticmethod
+    def config_status():
+        return {
+            "configured": bool(TERAC_API_KEY),
+            "dry_run": DRY_RUN,
+            "auto_launch": TERAC_AUTO_LAUNCH,
+            "max_review_cents": TERAC_MAX_REVIEW_CENTS,
+            "project_name": TERAC_PROJECT_NAME,
+            "base": TERAC_BASE,
+        }
+
+    @staticmethod
     def _headers():
         return {
             "Authorization": f"Bearer {TERAC_API_KEY}",
@@ -577,6 +588,41 @@ class Terac:
                 "mode": "fallback",
                 "error": str(exc),
             }
+
+    @staticmethod
+    def ensure_launched(task):
+        if DRY_RUN or not TERAC_API_KEY or not TERAC_AUTO_LAUNCH:
+            return task
+        if not task or task.get("launched") is True:
+            return task
+        if task.get("error") or str(task.get("task_id", "")).startswith("fallback"):
+            return task
+
+        opportunity_id = task.get("opportunity_id") or task.get("task_id")
+        if not opportunity_id:
+            return task
+
+        try:
+            launch = Terac._request("POST", f"/opportunities/{opportunity_id}/launch", json={})
+            dashboard = ((launch.get("links") or {}).get("dashboard") or {})
+            updated = {
+                **task,
+                "status": launch.get("status") or "launched",
+                "mode": "live",
+                "launched": True,
+                "dashboard_url": (
+                    dashboard.get("study")
+                    or dashboard.get("recruitment")
+                    or dashboard.get("draft_editor")
+                    or task.get("dashboard_url")
+                ),
+            }
+            if launch.get("pricing"):
+                updated["cost_cents"] = int(launch["pricing"].get("total_cost_cents") or updated.get("cost_cents") or 0)
+            return updated
+        except Exception as exc:
+            print(f"[terac:launch:error] {exc}")
+            return {**task, "launch_error": str(exc)}
 
     @staticmethod
     def poll_review(task_id, timeout_seconds=TERAC_POLL_SECONDS):
