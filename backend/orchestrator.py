@@ -260,6 +260,12 @@ def on_verify(job):
         )
         job["data"]["terac_task"] = task
         store.save_job(job)
+        store.log_decision(
+            "terac_review_requested",
+            "created Terac review opportunity",
+            job_id=job["id"],
+            detail=str(task.get("dashboard_url") or task.get("error") or task),
+        )
     else:
         launched_task = Terac.ensure_launched(task)
         if launched_task != task:
@@ -273,6 +279,15 @@ def on_verify(job):
                 detail=str(task.get("dashboard_url") or task.get("launch_error") or task),
             )
 
+    if task.get("launch_error"):
+        store.log_decision(
+            "terac_launch_failed",
+            "Terac review opportunity stayed in draft",
+            job_id=job["id"],
+            detail=task.get("launch_error"),
+        )
+        return None
+
     if task.get("error") and task.get("launched") is False:
         store.log_decision(
             "terac_not_launched",
@@ -281,6 +296,14 @@ def on_verify(job):
             detail=task.get("error"),
         )
         return "DELIVER"
+
+    if str(task.get("task_id", "")).startswith("fallback"):
+        store.log_decision(
+            "terac_request_failed",
+            "Terac review fell back after API error",
+            job_id=job["id"],
+            detail=task.get("error"),
+        )
 
     result = Terac.poll_review(task["task_id"])
     job["data"]["terac_result"] = result

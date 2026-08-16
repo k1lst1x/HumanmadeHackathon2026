@@ -549,45 +549,61 @@ class Terac:
                 "/opportunities",
                 json=Terac._opportunity_payload(artifact_url, brief),
             )
-            opportunity_id = draft["id"]
-            pricing = draft.get("pricing") or {}
-            estimated_cost = int(pricing.get("total_cost_cents") or 0)
-            max_cost = max(TERAC_MAX_REVIEW_CENTS, int(budget_cents or 0))
-            if estimated_cost and max_cost and estimated_cost > max_cost:
-                return {
-                    "task_id": opportunity_id,
-                    "opportunity_id": opportunity_id,
-                    "status": "draft",
-                    "mode": "live",
-                    "launched": False,
-                    "dashboard_url": ((draft.get("links") or {}).get("dashboard") or {}).get("draft_editor"),
-                    "cost_cents": estimated_cost,
-                    "error": f"estimated Terac cost ${estimated_cost / 100:.2f} exceeds cap ${max_cost / 100:.2f}",
-                }
-
-            launch = None
-            if TERAC_AUTO_LAUNCH:
-                launch = Terac._request("POST", f"/opportunities/{opportunity_id}/launch", json={})
-
-            result = launch or draft
-            dashboard = ((result.get("links") or {}).get("dashboard") or {})
-            return {
-                "task_id": opportunity_id,
-                "opportunity_id": opportunity_id,
-                "status": result.get("status") or "launched",
-                "mode": "live",
-                "launched": bool(launch),
-                "dashboard_url": dashboard.get("study") or dashboard.get("recruitment") or dashboard.get("draft_editor"),
-                "cost_cents": int((result.get("pricing") or pricing).get("total_cost_cents") or budget_cents),
-            }
         except Exception as exc:
-            print(f"[terac:error] {exc}")
+            print(f"[terac:create:error] {exc}")
             return {
                 "task_id": f"fallback_{task_id}",
                 "status": "fallback",
                 "mode": "fallback",
                 "error": str(exc),
             }
+
+        opportunity_id = draft["id"]
+        pricing = draft.get("pricing") or {}
+        dashboard = ((draft.get("links") or {}).get("dashboard") or {})
+        dashboard_url = dashboard.get("study") or dashboard.get("recruitment") or dashboard.get("draft_editor")
+        estimated_cost = int(pricing.get("total_cost_cents") or 0)
+        max_cost = max(TERAC_MAX_REVIEW_CENTS, int(budget_cents or 0))
+        if estimated_cost and max_cost and estimated_cost > max_cost:
+            return {
+                "task_id": opportunity_id,
+                "opportunity_id": opportunity_id,
+                "status": "draft",
+                "mode": "live",
+                "launched": False,
+                "dashboard_url": dashboard_url,
+                "cost_cents": estimated_cost,
+                "error": f"estimated Terac cost ${estimated_cost / 100:.2f} exceeds cap ${max_cost / 100:.2f}",
+            }
+
+        launch = None
+        if TERAC_AUTO_LAUNCH:
+            try:
+                launch = Terac._request("POST", f"/opportunities/{opportunity_id}/launch", json={})
+            except Exception as exc:
+                print(f"[terac:launch:error] {exc}")
+                return {
+                    "task_id": opportunity_id,
+                    "opportunity_id": opportunity_id,
+                    "status": "draft",
+                    "mode": "live",
+                    "launched": False,
+                    "dashboard_url": dashboard_url,
+                    "cost_cents": estimated_cost or budget_cents,
+                    "launch_error": str(exc),
+                }
+
+        result = launch or draft
+        dashboard = ((result.get("links") or {}).get("dashboard") or {})
+        return {
+            "task_id": opportunity_id,
+            "opportunity_id": opportunity_id,
+            "status": result.get("status") or "launched",
+            "mode": "live",
+            "launched": bool(launch),
+            "dashboard_url": dashboard.get("study") or dashboard.get("recruitment") or dashboard.get("draft_editor") or dashboard_url,
+            "cost_cents": int((result.get("pricing") or pricing).get("total_cost_cents") or budget_cents),
+        }
 
     @staticmethod
     def ensure_launched(task):
@@ -605,8 +621,10 @@ class Terac:
         try:
             launch = Terac._request("POST", f"/opportunities/{opportunity_id}/launch", json={})
             dashboard = ((launch.get("links") or {}).get("dashboard") or {})
-            updated = {
+            return {
                 **task,
+                "task_id": opportunity_id,
+                "opportunity_id": opportunity_id,
                 "status": launch.get("status") or "launched",
                 "mode": "live",
                 "launched": True,
@@ -616,10 +634,9 @@ class Terac:
                     or dashboard.get("draft_editor")
                     or task.get("dashboard_url")
                 ),
+                "cost_cents": int((launch.get("pricing") or {}).get("total_cost_cents") or task.get("cost_cents") or 0),
+                "launch_error": None,
             }
-            if launch.get("pricing"):
-                updated["cost_cents"] = int(launch["pricing"].get("total_cost_cents") or updated.get("cost_cents") or 0)
-            return updated
         except Exception as exc:
             print(f"[terac:launch:error] {exc}")
             return {**task, "launch_error": str(exc)}
